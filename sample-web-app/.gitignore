@@ -1,0 +1,40 @@
+# --------------------------------------------------
+# Global .gitignore (root-level)
+# --------------------------------------------------
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Logs
+*.log
+logs/
+
+# Environment files (root-level)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node dependencies (safety in case of misplaced installs)
+node_modules/
+
+# Temporary files
+.tmp/
+temp/
+.cache/
+
+# Build artifacts (global fallback)
+dist/
+build/
+
+# Docker
+docker-compose.override.yml
+*.pid
+*.pid.lock
