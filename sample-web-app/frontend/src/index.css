@@ -1,0 +1,10 @@
+body {
+  margin: auto;
+  padding: 0.5rem;
+}
+
+.loader,
+.api-error {
+  padding: 2rem;
+  text-align: center;
+}

@@ -1,0 +1,28 @@
+# Build artifacts
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+.cache/
+
+# Environment files
+.env
+.env.*
+
+# Test coverage
+coverage/
+
+# IDE/editor config
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Lock and config files (optional)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

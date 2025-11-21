@@ -1,0 +1,58 @@
+.header {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.5rem 2rem;
+  border-bottom: 0.0625rem solid #e5e7eb;
+}
+
+.headerImg {
+  width: auto;
+  height: 1.875rem;
+  object-fit: contain;
+}
+
+/* === Responsive Breakpoints === */
+
+/* Large tablets and small laptops (≤ 1024px) */
+@media (max-width: 1024px) {
+  .header {
+    padding: 0.5rem 1.5rem;
+  }
+
+  .headerImg {
+    height: 1.75rem;
+  }
+}
+
+/* Tablets (≤ 768px) */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1.25rem;
+  }
+
+  .headerImg {
+    height: 1.625rem;
+  }
+}
+
+/* Mobile phones (≤ 480px) */
+@media (max-width: 480px) {
+  .header {
+    padding: 0.4rem 1rem;
+  }
+
+  .headerImg {
+    height: 1.5rem;
+  }
+}
+
+/* Very small devices (≤ 360px) */
+@media (max-width: 360px) {
+  .header {
+    padding: 0.35rem 0.75rem;
+  }
+
+  .headerImg {
+    height: 1.375rem;
+  }
+}
