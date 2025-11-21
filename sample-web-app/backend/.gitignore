@@ -1,0 +1,67 @@
+# --------------------------------------------------
+# Backend (NestJS) .gitignore
+# --------------------------------------------------
+
+# Compiled output
+dist/
+build/
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+
+# Tests and coverage
+coverage/
+.nyc_output/
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# VSCode (ignore everything except workspace configs)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temporary directories
+temp/
+.tmp/
+.temp/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Ignore private keys and certs (if used for local dev)
+certs/
+*.pem
+*.key
+*.crt
