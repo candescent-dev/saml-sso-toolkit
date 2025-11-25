@@ -28,7 +28,7 @@ export class AttributesDto {
 
 /**
  * Main DTO for /simulation endpoint.
- * Contains ACS URL, encryption public key, and user attributes.
+ * Contains ACS URL, encryption public certificate, and user attributes.
  */
 export class SimulationDto {
   /** Vendor's ACS endpoint */
@@ -36,10 +36,10 @@ export class SimulationDto {
   @IsNotEmpty()
   public readonly acsUrl!: string;
 
-  /** Vendor's public key for encryption */
+  /** Vendor's public certificate for encryption */
   @IsString()
   @IsNotEmpty()
-  public readonly encryptionPublicKey!: string;
+  public readonly publicCertificate!: string;
 
   /** User attributes object */
   @ValidateNested()
