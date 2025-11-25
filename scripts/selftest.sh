@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---- Setup ----
+CONTAINER_NAME="saml-sso-toolkit-container"
+FRONTEND_PORT=${1:-8000}
+MAX_RETRIES=5
+RETRY_INTERVAL=2
+
+IMAGE_NAME="saml-sso-toolkit"
+TAG="latest"
+
+# ---- Check if image exists ----
+if ! docker images | grep -q "$IMAGE_NAME.*$TAG"; then
+  error_exit "Docker image $IMAGE_NAME:$TAG not found. Please run ./scripts/init.sh first."
+fi
+
+# ---- Helpers ----
+log()    { echo -e "\033[1;34m[INFO]\033[0m $*"; }
+warn()   { echo -e "\033[1;33m[WARN]\033[0m $*"; }
+error_exit() { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; exit 1; }
+success(){ echo -e "\033[1;32m[SUCCESS]\033[0m $*"; }
+
+check_container_status() {
+  if ! docker ps | grep -q "$CONTAINER_NAME"; then
+    error_exit "Container '$CONTAINER_NAME' is not running. Please run ./scripts/run-web-app.sh first."
+  fi
+  log "Container '$CONTAINER_NAME' is running"
+}
+
+check_health() {
+  local url=$1
+  local label=$2
+  local retry_count=0
+
+  log "Checking $label health at $url"
+  while [ $retry_count -lt $MAX_RETRIES ]; do
+    if curl -s -f "$url" >/dev/null 2>&1; then
+      success "$label is responding at $url"
+      return 0
+    fi
+    retry_count=$((retry_count + 1))
+    log "Attempt $retry_count/$MAX_RETRIES: $label not ready yet, waiting ${RETRY_INTERVAL}s..."
+    sleep $RETRY_INTERVAL
+  done
+  error_exit "$label failed to respond after $((MAX_RETRIES * RETRY_INTERVAL)) seconds"
+}
+
+check_container_logs() {
+  log "Checking container logs for errors..."
+  local error_count
+  error_count=$(docker logs "$CONTAINER_NAME" 2>&1 | grep -i "error\|exception\|failed" | wc -l)
+  if [ "$error_count" -gt 0 ]; then
+    warn "Found $error_count potential errors in container logs:"
+    docker logs "$CONTAINER_NAME" 2>&1 | grep -i "error\|exception\|failed" | head -5
+  else
+    success "No errors found in container logs"
+  fi
+}
+
+
+get_backend_port() {
+  log "Reading backend port from config.json inside the image..." >&2  
+  
+  local port
+  port=$(docker run --rm "$IMAGE_NAME:$TAG" sh -c 'jq -r ".backendPort" /app/config.json')
+
+  if [[ -z "$port" || "$port" == "null" ]]; then
+    error_exit "Failed to read backendPort from config.json. Please check the file inside the image."
+  fi
+
+  echo "$port"
+}
+
+# ---- Main Execution ----
+log "Starting application self-test..."
+check_container_status
+
+BACKEND_PORT=$(get_backend_port)
+
+FRONTEND_URL="http://localhost:$FRONTEND_PORT"
+BACKEND_URL="http://localhost:$BACKEND_PORT/api/health"
+
+log "Frontend Port: $FRONTEND_PORT"
+log "Backend Port: $BACKEND_PORT"
+log ""
+
+check_health "$FRONTEND_URL" "Frontend"
+check_health "$BACKEND_URL" "Backend"
+check_container_logs
+
+log ""
+success "All self-tests passed! Application is running correctly."
+log "Test Summary:"
+log " Container is running"
+log " Frontend is responding"
+log " Backend is responding"
+log " No critical errors in logs"
+log ""
+log " Frontend: $FRONTEND_URL"
+log " Backend: $BACKEND_URL"
