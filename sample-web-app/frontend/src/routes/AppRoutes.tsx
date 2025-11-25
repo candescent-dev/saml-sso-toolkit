@@ -7,8 +7,7 @@ const HomePage = lazy(() => import('../pages/Home/HomePage'));
 
 // Route paths (type-safe)
 const ROUTES = {
-  HOME: '/',
-  START_OIDC_SSO: '/startOidcSso',
+  HOME: '/'
 } as const;
 
 // Fallback skeleton while page loads
