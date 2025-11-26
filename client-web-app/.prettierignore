@@ -1,0 +1,35 @@
+# Build artifacts
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+    
+# Temporary or cache files
+.tmp
+.temp
+.cache/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE/editor config
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
