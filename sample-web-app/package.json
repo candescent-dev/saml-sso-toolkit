@@ -1,0 +1,14 @@
+{
+  "name": "sample-web-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:e2e": "npx playwright test",
+    "playwright:install": "npx playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "playwright": "^1.56.1",
+    "typescript": "^5.2.0"
+  }
+}
