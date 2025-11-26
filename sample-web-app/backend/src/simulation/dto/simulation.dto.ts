@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, ValidateNested, IsUrl } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -23,6 +23,7 @@ export class AttributesDto {
 
   /** User's email address */
   @IsEmail()
+  @IsNotEmpty()
   public readonly email!: string;
 }
 
@@ -34,6 +35,10 @@ export class SimulationDto {
   /** Vendor's ACS endpoint */
   @IsString()
   @IsNotEmpty()
+  @IsUrl({
+    require_protocol: true, // must have http/https
+    require_tld: false, // allow localhost
+  })
   public readonly acsUrl!: string;
 
   /** Vendor's public certificate for encryption */
@@ -42,6 +47,7 @@ export class SimulationDto {
   public readonly publicCertificate!: string;
 
   /** User attributes object */
+  @IsNotEmpty()
   @ValidateNested()
   @Type(() => AttributesDto)
   public readonly attributes!: AttributesDto;
