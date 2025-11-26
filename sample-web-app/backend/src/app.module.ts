@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AppConfigModule } from './appConfig/appConfig.module';
 import { SamlModule } from './saml/saml.module';
+import { AppController } from './app.controller';
+import { AppConfigModule } from './appConfig/appConfig.module';
+import { PublicKeyModule } from './publicKey/publicKey.module';
 @Module({
-  imports: [AppConfigModule, SamlModule],
+  imports: [AppConfigModule, SamlModule, PublicKeyModule],
   controllers: [AppController],
   providers: [AppService],
 })

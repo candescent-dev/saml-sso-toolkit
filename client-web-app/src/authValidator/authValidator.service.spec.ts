@@ -4,10 +4,6 @@ import { AuthValidatorService } from './authValidator.service';
 describe('AuthValidatorService', () => {
   let service: AuthValidatorService;
 
-  const mockHttpService = {
-    get: jest.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [AuthValidatorService],
