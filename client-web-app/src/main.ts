@@ -10,14 +10,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api'); // makes all routes start with /api
 
   // Enable global validation for incoming requests
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // strip properties not defined in DTOs
-      forbidNonWhitelisted: true, // throw error if unknown properties are sent
-    }),
-  );
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     whitelist: true, // strip properties not defined in DTOs
+  //     forbidNonWhitelisted: true, // throw error if unknown properties are sent
+  //   }),
+  // );
 
-  // Start the application on dynamic port (default port - 9000)
+  // Start the application on port - 7000
   await app.listen(7000);
   console.log(`Server listening on http://localhost:7000`);
 }
