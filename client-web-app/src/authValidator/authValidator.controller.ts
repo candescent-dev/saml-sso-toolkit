@@ -1,12 +1,17 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
 import { AuthValidatorService } from './authValidator.service';
 
 @Controller('auth-validator')
 export class AuthValidatorController {
   constructor(private readonly authValidatorService: AuthValidatorService) {}
 
-  @Get('test')
+  @Post('test')
   testRoute() {
-    return this.authValidatorService.test();
+    // return this.authValidatorService.test();
+    return {
+      status: 'ok',
+      message: 'Hello',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

@@ -4,6 +4,7 @@ import { create } from 'xmlbuilder2';
 import xmlenc from 'xml-encryption';
 import { SignedXml } from 'xml-crypto';
 import { X509Certificate } from 'crypto';
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { SimulationDto } from './dto/simulation.dto';
 import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
@@ -18,18 +19,10 @@ interface BuiltSamlParts {
   readonly rawAssertionXml: string;
 }
 
-/**
- * Interface for SignedXml to allow TypeScript to accept signingKey
- */
-interface ISigner {
-  addReference(xpath: string, transforms?: string[]): void;
-  signingKey: string;
-  computeSignature(xml: string): void;
-  getSignedXml(): string;
-}
-
 @Injectable()
 export class SimulationService {
+  constructor(private readonly httpService: HttpService) {}
+
   /**
    * Orchestrates the simulation workflow.
    * @param simulationDto - validated simulation request
@@ -39,6 +32,8 @@ export class SimulationService {
   public async processSimulation(simulationDto: SimulationDto): Promise<Record<string, unknown>> {
     // Step 1: Generate Base SAML Assertion
     const { fullResponseXml, rawAssertionXml } = this.buildSamlResponse(simulationDto);
+    console.log('fullResponseXml:', fullResponseXml);
+    console.log('rawAssertionXml:', rawAssertionXml);
     // Step 2: Sign the raw assertion with Candescent private key
     const signedAssertionXml = this.signSamlAssertion(
       rawAssertionXml,
@@ -49,15 +44,20 @@ export class SimulationService {
       signedAssertionXml,
       simulationDto.publicCertificate,
     );
-    // Step 4: Insert signed + encrypted assertion into full response
+    // Step 4: Inject encrypted assertion back into the response
     const finalSamlResponse = this.insertEncryptedAssertion(
       fullResponseXml,
       encryptedSignedAssertionXml,
     );
+    // STEP 5: Base64-encode SAML Response
+    const base64SamlResponse = Buffer.from(finalSamlResponse, 'utf-8').toString('base64');
+    // STEP 6: POST SAMLResponse to ACS URL
+    const acsResponse = await this.postToAcs(simulationDto.acsUrl, base64SamlResponse);
     return {
-      acsUrl: simulationDto.acsUrl,
-      samlResponse: finalSamlResponse,
-      message: 'Simulation processed successfully (mocked)',
+      success: true,
+      xml: finalSamlResponse, // Raw XML
+      base64: base64SamlResponse, // Payload - sent to Vendor
+      acsResponse, // Response from vendor
     };
   }
 
@@ -237,17 +237,47 @@ export class SimulationService {
    * @throws Error if response or assertion nodes cannot be located
    */
   private insertEncryptedAssertion(fullResponseXml: string, encryptedAssertionXml: string): string {
+    // Parse the original SAML Response XML
     const responseRoot = create(fullResponseXml).root();
-    const parentResponseNode = responseRoot.find((node) => node.node.nodeName === 'samlp:Response');
-    if (!parentResponseNode) throw new Error('Failed to locate <samlp:Response> for insertion.');
+    // Root is already <samlp:Response>
+    const parentResponseNode = responseRoot;
+    // Locate the plaintext assertion
     const assertionNode = parentResponseNode.find(
       (node) => node.node.nodeName === 'saml:Assertion',
     );
-    if (!assertionNode) throw new Error('Original <saml:Assertion> not found for replacement.');
-    // Remove the original plain assertion
+    if (!assertionNode) {
+      throw new Error('Original <saml:Assertion> not found for replacement.');
+    }
+    // Remove plaintext assertion
     assertionNode.remove();
-    // Insert the encrypted assertion
+    // Insert encrypted assertion
     parentResponseNode.ele('saml:EncryptedAssertion').import(create(encryptedAssertionXml).root());
+    // Return updated XML
     return responseRoot.end({ headless: true, prettyPrint: true });
+  }
+
+  /**
+   * Sends a SAMLResponse to the vendor's Assertion Consumer Service (ACS) endpoint.
+   * @param acsUrl - The ACS endpoint URL provided by the SAML service provider.
+   * @param base64SamlResponse - The SAMLResponse XML encoded in Base64 format.
+   * @returns Returns a Promise that resolves to the response data from the ACS endpoint.
+   */
+  private async postToAcs(acsUrl: string, base64SamlResponse: string): Promise<any> {
+    // Prepare form-urlencoded parameters
+    const params = new URLSearchParams();
+    params.append('SAMLResponse', base64SamlResponse);
+    // POST the SAMLResponse to the ACS URL
+    // const result = await this.httpService.axiosRef.post(acsUrl, params.toString(), {
+    //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    // });
+    const result = await this.httpService.axiosRef.post(
+      'http://localhost:7000/api/auth-validator/test',
+      params.toString(),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      },
+    );
+    //  Return the vendor's response
+    return result.data;
   }
 }
