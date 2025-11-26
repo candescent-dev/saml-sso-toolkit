@@ -28,10 +28,10 @@ export class AttributesDto {
 }
 
 /**
- * Main DTO for /simulation endpoint.
+ * Main DTO for /saml endpoint.
  * Contains ACS URL, encryption public certificate, and user attributes.
  */
-export class SimulationDto {
+export class SamlRequestDto {
   /** Vendor's ACS endpoint */
   @IsString()
   @IsNotEmpty()
