@@ -59,9 +59,3 @@ pids/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Ignore private keys and certs (if used for local dev)
-certs/
-*.pem
-*.key
-*.crt
