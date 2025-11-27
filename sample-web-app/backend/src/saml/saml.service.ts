@@ -52,16 +52,13 @@ export class SamlService {
     console.log('finalSamlResponse', finalSamlResponse);
     // STEP 5: Base64-encode SAML Response
     const base64SamlResponse = Buffer.from(finalSamlResponse, 'utf-8').toString('base64');
-    // STEP 6: POST SAMLResponse to ACS URL
-    const acsServerResponse = await this.sendSamlResponseToAcs(
-      samlRequestDto.acsUrl,
-      base64SamlResponse,
-    );
+    // Step 6: Send SAMLResponse to ACS endpoint
+    await this.sendSamlResponseToAcs(samlRequestDto.acsUrl, base64SamlResponse);
     return {
       success: true,
-      xml: finalSamlResponse, // Raw XML
-      base64: base64SamlResponse, // Payload - sent to Vendor
-      acsServerResponse, // Response from vendor
+      acsUrl: samlRequestDto.acsUrl,
+      publicCertificate: samlRequestDto.publicCertificate,
+      xml: samlResponseXml, // Raw XML
     };
   }
 
@@ -357,7 +354,7 @@ export class SamlService {
     // const url = `${acsUrl}?${new URLSearchParams({
     //   SAMLResponse: base64SamlResponse,
     // })}`;
-     const url = `http://localhost:7000/api/auth-validator/test?${new URLSearchParams({
+    const url = `http://localhost:7000/api/auth-validator/test?${new URLSearchParams({
       SAMLResponse: base64SamlResponse,
     })}`;
     try {
