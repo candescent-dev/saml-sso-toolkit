@@ -1,25 +1,49 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface CounterState {
-  value: number;
+interface FormState {
+  initUrl: string;
+  encCertificate: string;
+  firstName: string;
+  lastName: string;
+  memberId: string;
+  email: string;
 }
 
-const initialState: CounterState = {
-  value: 0,
+const initialState: FormState = {
+  initUrl: '',
+  encCertificate: '',
+  firstName: 'John',
+  lastName: 'Deo',
+  memberId: 'AS83747TB',
+  email: 'john.doe@example.com',
 };
 
 const homeSlice = createSlice({
   name: 'home',
   initialState,
   reducers: {
-    increment: (state) => {
-      state.value += 1;
+    setInitUrl(state, action: PayloadAction<string>) {
+      state.initUrl = action.payload;
     },
-    decrement: (state) => {
-      state.value -= 1;
+    setEncCertificate(state, action: PayloadAction<string>) {
+      state.encCertificate = action.payload;
+    },
+    setFirstName(state, action: PayloadAction<string>) {
+      state.firstName = action.payload;
+    },
+    setLastName(state, action: PayloadAction<string>) {
+      state.lastName = action.payload;
+    },
+    setMemberId(state, action: PayloadAction<string>) {
+      state.memberId = action.payload;
+    },
+    setEmail(state, action: PayloadAction<string>) {
+      state.email = action.payload;
     },
   },
 });
 
-export const { increment, decrement } = homeSlice.actions;
+export const { setInitUrl, setEncCertificate, setFirstName, setLastName, setMemberId, setEmail } =
+  homeSlice.actions;
+
 export default homeSlice.reducer;
