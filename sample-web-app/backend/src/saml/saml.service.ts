@@ -354,17 +354,17 @@ export class SamlService {
    * @returns Returns a Promise that resolves to the response data from the ACS endpoint
    */
   private async sendSamlResponseToAcs(acsUrl: string, base64SamlResponse: string): Promise<any> {
-    const params = new URLSearchParams();
-    params.append('SAMLResponse', base64SamlResponse);
+    // const url = `${acsUrl}?${new URLSearchParams({
+    //   SAMLResponse: base64SamlResponse,
+    // })}`;
+     const url = `http://localhost:7000/api/auth-validator/test?${new URLSearchParams({
+      SAMLResponse: base64SamlResponse,
+    })}`;
     try {
-      const result = await this.httpService.axiosRef.post(
-        'http://localhost:7000/api/auth-validator/test',
-        params.toString(),
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: TIMEOUT,
-        },
-      );
+      const result = await this.httpService.axiosRef.post(url, null, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: TIMEOUT,
+      });
       if (result.status < 200 || result.status >= 300) {
         throw new Error(`ACS responded with status ${result.status}`);
       }
