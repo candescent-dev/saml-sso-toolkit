@@ -1,160 +1,103 @@
-import React, { FC, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../app/store';
-import {
-  setInitUrl,
-  setEncCertificate,
-  setFirstName,
-  setLastName,
-  setMemberId,
-  setEmail,
-} from '../../features/home/homeSlice';
-import { validateCertificate, validateUrl } from '../../utils/helpers';
+import React, { FC, useState, ChangeEvent, FormEvent } from 'react';
 import downloadIcon from '../../assets/download.svg';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { setHomeState } from '../../features/home/homeSlice';
+import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
+import { HomeState } from '../../features/home/types';
 import './HomePage.css';
 
-const HomePage: FC = () => {
-  const dispatch = useDispatch();
-  const { initUrl, encCertificate, firstName, lastName, memberId, email } = useSelector(
-    (state: RootState) => state.home
-  );
+interface FieldErrors {
+  acsUrl: string | null;
+  publicCertificate: string | null;
+}
 
-  const [fieldErrors, setFieldErrors] = useState<{
-    initUrl: string | null;
-    encCertificate: string | null;
-    firstName: string | null;
-    lastName: string | null;
-    memberId: string | null;
-    email: string | null;
-  }>({
-    initUrl: null,
-    encCertificate: null,
-    firstName: null,
-    lastName: null,
-    memberId: null,
-    email: null,
+const HomePage: FC = () => {
+  const dispatch = useAppDispatch();
+  const { attributes } = useAppSelector((state) => state.home);
+
+  const [acsUrl, setACSUrl] = useState<string>('');
+  const [publicCertificate, setPublicCertificate] = useState<string>('');
+
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({
+    acsUrl: null,
+    publicCertificate: null,
   });
 
   /* ----------------------------- Input Handlers ----------------------------- */
-  const handleInitUrlChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleACSUrlChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
-    dispatch(setInitUrl(value));
-    if (!value.trim()) {
-      setFieldErrors((prev) => ({ ...prev, initUrl: 'Init URL is required' }));
-    } else if (!validateUrl(value)) {
-      setFieldErrors((prev) => ({ ...prev, initUrl: 'Invalid URL' }));
-    } else {
-      setFieldErrors((prev) => ({ ...prev, initUrl: null }));
-    }
+    setACSUrl(value);
+    setFieldErrors((prev) => ({
+      ...prev,
+      acsUrl: !value.trim() ? 'ACS URL is required' : !validateUrl(value) ? 'Invalid URL' : null,
+    }));
   };
 
-  const handleCertificateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handlePublicCertificateChange = (e: ChangeEvent<HTMLTextAreaElement>): void => {
     const value = e.target.value;
-    dispatch(setEncCertificate(value));
-    const hasHeader = value.includes('-----BEGIN CERTIFICATE-----');
-    const hasFooter = value.includes('-----END CERTIFICATE-----');
-    const body = value.replace(/-----.*-----/g, '').trim();
-    const base64Regex = /^[A-Za-z0-9+/=\s]+$/;
-    if (!value.trim()) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Test encryption certificate is required',
-      }));
-    } else if (!hasHeader || !hasFooter) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Certificate must include BEGIN/END PUBLIC KEY lines',
-      }));
-    } else if (!base64Regex.test(body)) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Certificate body must be valid Base64',
-      }));
-    } else if (body.length < 100) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Certificate seems too short',
-      }));
-    } else {
-      setFieldErrors((prev) => ({ ...prev, encCertificate: null }));
-    }
+    setPublicCertificate(value);
+    setFieldErrors((prev) => ({
+      ...prev,
+      publicCertificate: !value.trim()
+        ? 'Test encryption certificate is required'
+        : !validatePublicCertificate(value)
+        ? 'Certificate must include BEGIN/END CERTIFICATE lines'
+        : null,
+    }));
   };
 
   const isFormValid = (): boolean => {
-    if (!validateUrl(initUrl) || !validateCertificate(encCertificate)) return false;
-    return true;
+    return (
+      validateUrl(acsUrl) &&
+      validatePublicCertificate(publicCertificate) &&
+      !fieldErrors.acsUrl &&
+      !fieldErrors.publicCertificate
+    );
   };
 
-  const handleSubmit = (e: React.FormEvent): void => {
+  /* ----------------------------- Submit Handler ----------------------------- */
+  const handleSubmit = (e: FormEvent): void => {
     e.preventDefault();
     let hasError = false;
-    // Init URL Validation
-    if (!initUrl.trim()) {
-      setFieldErrors((prev) => ({ ...prev, initUrl: 'Init URL is required' }));
+    // ACS URL Validation
+    if (!acsUrl.trim()) {
+      setFieldErrors((prev) => ({ ...prev, acsUrl: 'ACS URL is required' }));
       hasError = true;
-    } else if (!validateUrl(initUrl)) {
-      setFieldErrors((prev) => ({ ...prev, initUrl: 'Invalid URL' }));
+    } else if (!validateUrl(acsUrl)) {
+      setFieldErrors((prev) => ({ ...prev, acsUrl: 'Invalid URL' }));
       hasError = true;
     } else {
-      setFieldErrors((prev) => ({ ...prev, initUrl: null }));
+      setFieldErrors((prev) => ({ ...prev, acsUrl: null }));
     }
-    const hasHeader = encCertificate.includes('-----BEGIN CERTIFICATE-----');
-    const hasFooter = encCertificate.includes('-----END CERTIFICATE-----');
-    const body = encCertificate.replace(/-----.*-----/g, '').trim();
-    const base64Regex = /^[A-Za-z0-9+/=\s]+$/;
-    if (!encCertificate.trim()) {
+    // Public Certificate Validation
+    if (!publicCertificate.trim()) {
       setFieldErrors((prev) => ({
         ...prev,
-        encCertificate: 'Test encryption certificate is required',
+        publicCertificate: 'Test encryption certificate is required',
       }));
       hasError = true;
-    } else if (!hasHeader || !hasFooter) {
+    } else if (!validatePublicCertificate(publicCertificate)) {
       setFieldErrors((prev) => ({
         ...prev,
-        encCertificate: 'Certificate must include BEGIN/END PUBLIC KEY lines',
-      }));
-      hasError = true;
-    } else if (!base64Regex.test(body)) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Certificate body must be valid Base64',
-      }));
-      hasError = true;
-    } else if (body.length < 100) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        encCertificate: 'Certificate seems too short',
+        publicCertificate: 'Certificate must include BEGIN/END CERTIFICATE lines',
       }));
       hasError = true;
     } else {
-      setFieldErrors((prev) => ({ ...prev, encCertificate: null }));
+      setFieldErrors((prev) => ({ ...prev, publicCertificate: null }));
     }
     if (hasError) return;
-    const payload = {
-      acsUrl: initUrl,
-      publicCertificate: encCertificate,
-      attributes: {
-        firstName,
-        lastName,
-        memberId,
-        email,
-      },
+    // Build Payload with strict typing
+    const payload: HomeState = {
+      acsUrl,
+      publicCertificate,
+      attributes,
     };
-    // Reset Fields
-    setInitUrl('');
-    setEncCertificate('');
-    setEmail('');
-    setFirstName('');
-    setLastName('');
-    setMemberId('');
-    setFieldErrors({
-      initUrl: null,
-      encCertificate: null,
-      firstName: null,
-      lastName: null,
-      email: null,
-      memberId: null,
-    });
+    // Dispatch to Redux
+    dispatch(setHomeState(payload));
+    // Reset fields
+    setACSUrl('');
+    setPublicCertificate('');
+    setFieldErrors({ acsUrl: null, publicCertificate: null });
   };
 
   return (
@@ -169,42 +112,42 @@ const HomePage: FC = () => {
         {/* ACS URL */}
         <div className="inline-input-box">
           <label
-            htmlFor="initUrl"
-            className={`inline-label ${fieldErrors.initUrl ? 'error-label' : ''}`}
+            htmlFor="acsUrl"
+            className={`inline-label ${fieldErrors.acsUrl ? 'error-label' : ''}`}
           >
             Test ACS URL *
           </label>
           <input
             type="text"
-            id="initUrl"
+            id="acsUrl"
             autoComplete="off"
-            className={`inline-input ${fieldErrors.initUrl ? 'error' : ''}`}
+            className={`inline-input ${fieldErrors.acsUrl ? 'error' : ''}`}
             placeholder="https://test.abc.com/sso/consume"
-            value={initUrl}
-            onChange={handleInitUrlChange}
+            value={acsUrl}
+            onChange={handleACSUrlChange}
           />
-          {fieldErrors.initUrl && <p className="error-message">{fieldErrors.initUrl}</p>}
+          {fieldErrors.acsUrl && <p className="error-message">{fieldErrors.acsUrl}</p>}
           <p className="description-info">Vendors can expect to receive the SAML response here.</p>
         </div>
         {/* Encryption Certificates */}
         <div className="inline-input-box">
           <label
-            htmlFor="callbackHost"
-            className={`inline-label ${fieldErrors.encCertificate ? 'error-label' : ''}`}
+            htmlFor="publicCertificate"
+            className={`inline-label ${fieldErrors.publicCertificate ? 'error-label' : ''}`}
           >
             Test Encryption Certificates(Public) *
           </label>
           <textarea
-            id="callbackHost"
-            autoComplete="off"
-            className={`inline-input ${fieldErrors.encCertificate ? 'error' : ''}`}
-            placeholder="(Paste PEM Block)"
-            value={encCertificate}
-            onChange={handleCertificateChange}
             rows={8}
+            id="publicCertificate"
+            autoComplete="off"
+            className={`inline-input ${fieldErrors.publicCertificate ? 'error' : ''}`}
+            placeholder="(Paste PEM Block)"
+            value={publicCertificate}
+            onChange={handlePublicCertificateChange}
           />
-          {fieldErrors.encCertificate && (
-            <p className="error-message">{fieldErrors.encCertificate}</p>
+          {fieldErrors.publicCertificate && (
+            <p className="error-message">{fieldErrors.publicCertificate}</p>
           )}
           <p className="description-info">
             Public certificate required to encrypt the SAML assertion before it is sent to the Test
@@ -218,95 +161,39 @@ const HomePage: FC = () => {
           Below mock details are for reference only and cannot be modified.
         </p>
       </div>
-      {/* First Name */}
+      {/* Vendor Inputs */}
       <div className="inputs">
-        <div className="inline-input-box">
-          <label
-            htmlFor="firstName"
-            className={`inline-label ${fieldErrors.firstName ? 'error-label' : ''}`}
-          >
-            First Name
-          </label>
-          <input
-            type="text"
-            id="firstName"
-            autoComplete="off"
-            disabled
-            className={`inline-input ${fieldErrors.firstName ? 'error' : ''}`}
-            placeholder="Test"
-            value={firstName}
-          />
-        </div>
-        {/* Last Name */}
-        <div className="inline-input-box">
-          <label
-            htmlFor="lastName"
-            className={`inline-label ${fieldErrors.lastName ? 'error-label' : ''}`}
-          >
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            autoComplete="off"
-            disabled
-            className={`inline-input ${fieldErrors.lastName ? 'error' : ''}`}
-            placeholder="Test"
-            value={lastName}
-          />
-        </div>
-        {/* Member ID */}
-        <div className="inline-input-box">
-          <label
-            htmlFor="memberId"
-            className={`inline-label ${fieldErrors.memberId ? 'error-label' : ''}`}
-          >
-            Member ID
-          </label>
-          <input
-            type="text"
-            id="memberId"
-            autoComplete="off"
-            disabled
-            className={`inline-input ${fieldErrors.memberId ? 'error' : ''}`}
-            placeholder="AS83747TB"
-            value={memberId}
-          />
-        </div>
-        {/* Email */}
-        <div className="inline-input-box">
-          <label
-            htmlFor="email"
-            className={`inline-label ${fieldErrors.email ? 'error-label' : ''}`}
-          >
-            Email
-          </label>
-          <input
-            type="text"
-            id="email"
-            autoComplete="off"
-            disabled
-            className={`inline-input ${fieldErrors.email ? 'error' : ''}`}
-            placeholder="test@test.com"
-            value={email}
-          />
-        </div>
-        {/* Run Simulation Button */}
-        <div className="button-row">
-          <button
-            type="button"
-            className="submit-btn"
-            data-testid="metadata-button"
-            onClick={handleSubmit}
-            disabled={!isFormValid()}
-          >
-            Run Simulation
-          </button>
-          <button type="button" className="icon-button" data-testid="jwk-button" onClick={() => {}}>
-            <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
-            Candescent Public Key
-          </button>
-        </div>
+        {Object.entries(attributes).map(([key, value]) => (
+          <div className="inline-input-box" key={key}>
+            <label htmlFor={key} className="inline-label">
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+            </label>
+            <input
+              type="text"
+              id={key}
+              autoComplete="off"
+              disabled
+              className="inline-input"
+              value={value}
+            />
+          </div>
+        ))}
+      </div>
+      {/* Run Simulation Button */}
+      <div className="button-row">
+        <button
+          type="button"
+          className="submit-btn"
+          data-testid="metadata-button"
+          onClick={handleSubmit}
+          disabled={!isFormValid()}
+        >
+          Run Simulation
+        </button>
+        <button type="button" className="icon-button" onClick={() => {}}>
+          <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
+          Candescent Public Key
+        </button>
       </div>
     </div>
   );

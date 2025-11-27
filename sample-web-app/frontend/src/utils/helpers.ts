@@ -12,20 +12,12 @@ export const validateUrl = (url: string): boolean => {
   }
 };
 
-export function validateCertificate(cert: string): boolean {
+export function validatePublicCertificate(cert: string): boolean {
   if (!cert) return false;
-  const hasHeader = cert.includes('-----BEGIN PUBLIC KEY-----');
-  const hasFooter = cert.includes('-----END PUBLIC KEY-----');
-  if (!hasHeader || !hasFooter) {
-    return false;
-  }
-  // Extract the body between header and footer
-  const body = cert.replace(/-----.*-----/g, '').trim();
-  const base64Regex = /^[A-Za-z0-9+/=\s]+$/;
-  if (!base64Regex.test(body)) {
-    return false;
-  }
-  if (body.length < 100) {
+  const normalized = cert.trim().replace(/\r/g, '');
+  const pemHeader = '-----BEGIN CERTIFICATE-----';
+  const pemFooter = '-----END CERTIFICATE-----';
+  if (!normalized.includes(pemHeader) || !normalized.includes(pemFooter)) {
     return false;
   }
   return true;
