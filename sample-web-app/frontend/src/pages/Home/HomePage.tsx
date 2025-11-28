@@ -1,9 +1,10 @@
 import React, { FC, useState, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import downloadIcon from '../../assets/download.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setHomeState } from '../../features/home/homeSlice';
+import { setHomeInputState, initiateSamlLogin } from '../../features/home/homeSlice';
 import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
-import { HomeState } from '../../features/home/types';
+import { HomeInputState } from '../../features/home/types';
 import './HomePage.css';
 
 interface FieldErrors {
@@ -13,6 +14,7 @@ interface FieldErrors {
 
 const HomePage: FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { attributes } = useAppSelector((state) => state.home);
 
   const [acsUrl, setACSUrl] = useState<string>('');
@@ -56,7 +58,7 @@ const HomePage: FC = () => {
   };
 
   /* ----------------------------- Submit Handler ----------------------------- */
-  const handleSubmit = (e: FormEvent): void => {
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     let hasError = false;
     // ACS URL Validation
@@ -86,14 +88,22 @@ const HomePage: FC = () => {
       setFieldErrors((prev) => ({ ...prev, publicCertificate: null }));
     }
     if (hasError) return;
-    // Build Payload with strict typing
-    const payload: HomeState = {
+    // Build Payload
+    const payload: HomeInputState = {
       acsUrl,
       publicCertificate,
       attributes,
     };
     // Dispatch to Redux
-    dispatch(setHomeState(payload));
+    dispatch(setHomeInputState(payload));
+    // Call SAML login endpoint
+    const resultAction = await dispatch(initiateSamlLogin(payload));
+    // Handle success / error cases
+    if (initiateSamlLogin.fulfilled.match(resultAction)) {
+      navigate('/success');
+    } else if (initiateSamlLogin.rejected.match(resultAction)) {
+      navigate('/error');
+    }
     // Reset fields
     setACSUrl('');
     setPublicCertificate('');
