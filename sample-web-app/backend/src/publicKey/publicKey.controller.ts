@@ -17,7 +17,6 @@ export class PublicKeyController {
       });
       return res.send(fileBuffer);
     } catch (error: any) {
-      const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
       return res.json({
         message: error?.message || 'Unknown error occurred',
       });

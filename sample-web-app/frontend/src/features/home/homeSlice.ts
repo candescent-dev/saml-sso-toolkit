@@ -4,7 +4,7 @@ import { getApi } from '../../services/api';
 
 type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
 
-// INITIAL STATE
+// -------------------- INITIAL STATE --------------------
 const initialState: HomeState = {
   acsUrl: '',
   publicCertificate: '',
@@ -19,7 +19,9 @@ const initialState: HomeState = {
   error: null,
 };
 
-// ASYNC THUNK
+// -------------------- ASYNC THUNKS --------------------
+
+// SAML Login
 export const initiateSamlLogin = createAsyncThunk<
   ApiSuccessResponse,
   HomeInputState,
@@ -39,7 +41,23 @@ export const initiateSamlLogin = createAsyncThunk<
   }
 });
 
-// SLICE
+// Download Public Key
+export const downloadPublicKey = createAsyncThunk<void, void, { rejectValue: string }>(
+  'home/downloadPublicKey',
+  async (_, { rejectWithValue }) => {
+    try {
+      const api = getApi();
+      await api.get<Blob>('public-key', { responseType: 'blob' });
+      return;
+    } catch (err: unknown) {
+      let message = 'Unexpected server error while downloading public key';
+      if (err instanceof Error) message = err.message;
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// -------------------- SLICE --------------------
 const homeSlice = createSlice({
   name: 'home',
   initialState,
@@ -64,6 +82,7 @@ const homeSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // -------------------- initiateSamlLogin --------------------
     builder
       .addCase(initiateSamlLogin.pending, (state) => {
         state.loading = true;
@@ -81,8 +100,23 @@ const homeSlice = createSlice({
           action.payload ||
           'Something went wrong while initiating SSO login. Please check your inputs and try again.';
       });
+    // -------------------- downloadPublicKey --------------------
+    builder
+      .addCase(downloadPublicKey.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(downloadPublicKey.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(downloadPublicKey.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to download public key';
+      });
   },
 });
 
+// -------------------- EXPORTS --------------------
 export const { setHomeInputState, resetHomeState } = homeSlice.actions;
 export default homeSlice.reducer;
