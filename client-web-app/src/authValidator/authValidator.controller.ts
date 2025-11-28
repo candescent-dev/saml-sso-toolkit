@@ -28,8 +28,6 @@ export class AuthValidatorController {
     const assertion = validationResult.assertion;
  
     return {
-     // status: 201,
-     // success: validationResult.ok,
       issuer: assertion?.issuer ?? null,
       audience: assertion?.audience ?? null,
       timestamps: assertion?.issueInstant ?? null,
