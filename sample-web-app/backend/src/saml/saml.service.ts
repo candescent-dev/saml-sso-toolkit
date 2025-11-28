@@ -354,7 +354,7 @@ export class SamlService {
     // const url = `${acsUrl}?${new URLSearchParams({
     //   SAMLResponse: base64SamlResponse,
     // })}`;
-    const url = `http://localhost:7000/api/auth-validator/test?${new URLSearchParams({
+    const url = `http://localhost:7000/api/auth-validator/acs?${new URLSearchParams({
       SAMLResponse: base64SamlResponse,
     })}`;
     try {

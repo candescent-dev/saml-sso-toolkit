@@ -1,6 +1,0 @@
-{
-  "client_id": "uDAsj10dfgrc66aclDOUDg",
-  "client_secret": "Tlyx_Lw-86GO9RwN9cwYcuWoFtDWF8tadTdKeR1azfU",
-  "redirect_uri": "http://localhost:7000/api/auth-validator/call-authorize-and-token",
-  "redirectUrl": "http://localhost:7000/api/auth-validator/call-authorize-and-token?code=HFKcsAt9D&state=oigNmT"
-}
