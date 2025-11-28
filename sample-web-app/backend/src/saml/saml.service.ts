@@ -351,10 +351,7 @@ export class SamlService {
    * @returns Returns a Promise that resolves to the response data from the ACS endpoint
    */
   private async sendSamlResponseToAcs(acsUrl: string, base64SamlResponse: string): Promise<any> {
-    // const url = `${acsUrl}?${new URLSearchParams({
-    //   SAMLResponse: base64SamlResponse,
-    // })}`;
-    const url = `http://localhost:7000/api/auth-validator/acs?${new URLSearchParams({
+    const url = `${acsUrl}?${new URLSearchParams({
       SAMLResponse: base64SamlResponse,
     })}`;
     try {

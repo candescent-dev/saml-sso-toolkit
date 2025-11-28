@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PublicKeyController } from './publicKey.controller';
 import { PublicKeyService } from './publicKey.service';
 
-describe('AuthValidatorController', () => {
+describe('PublicKeyController', () => {
   let controller: PublicKeyController;
 
   beforeEach(async () => {
