@@ -16,7 +16,7 @@ interface FieldErrors {
 const HomePage: FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { attributes } = useAppSelector((state) => state.home);
+  const { attributes, loading } = useAppSelector((state) => state.home);
 
   const [acsUrl, setACSUrl] = useState<string>('');
   const [publicCertificate, setPublicCertificate] = useState<string>('');
@@ -241,9 +241,9 @@ const HomePage: FC = () => {
             className="submit-btn"
             data-testid="metadata-button"
             onClick={handleSubmit}
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || loading}
           >
-            Run Simulation
+            {loading ? <span className="spinner"></span> : 'Run Simulation'}
           </button>
           <button type="button" className="icon-button" onClick={handleDownloadPublicKey}>
             <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
