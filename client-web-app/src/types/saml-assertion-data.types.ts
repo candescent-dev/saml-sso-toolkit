@@ -4,7 +4,7 @@ export interface SamlAssertionData {
   issuer?: string;
   subjectNameId?: string;
   audience?: string;
-  notOnOrAfter?: string;
+  issueInstant?: string;
   attributes: SamlAssertionAttributes;
 }
 

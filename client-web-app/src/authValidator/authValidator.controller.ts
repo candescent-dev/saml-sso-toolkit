@@ -13,7 +13,7 @@ export class AuthValidatorController {
    */
   @Post('acs')
   async acs(
-    @Query('SAMLResponse') samlResponseQuery?: string,
+    @ Query('SAMLResponse') samlResponseQuery?: string,
     @Query('RelayState') relayStateQuery?: string,
   ): Promise<any> {
     if (!samlResponseQuery) {
@@ -32,7 +32,7 @@ export class AuthValidatorController {
      // success: validationResult.ok,
       issuer: assertion?.issuer ?? null,
       audience: assertion?.audience ?? null,
-      timestamps: assertion?.notOnOrAfter ?? null,
+      timestamps: assertion?.issueInstant ?? null,
     };
   }
 }

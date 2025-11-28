@@ -169,16 +169,18 @@ export class AuthValidatorService {
         errors.push('Audience not found in Assertion Conditions');
       }
  
-      // Timestamp validation (NotOnOrAfter)
+      // Timestamp validation (IssueInstant)
       const now = Date.now();
-      if (!assertionData.notOnOrAfter) {
-        errors.push('NotOnOrAfter not found in Assertion');
+      if (!assertionData.issueInstant) {
+        errors.push('IssueInstant not found on Assertion');
       } else {
-        const notOnOrAfterTime = Date.parse(assertionData.notOnOrAfter);
-        if (Number.isNaN(notOnOrAfterTime)) {
-          errors.push('Invalid NotOnOrAfter timestamp on Assertion');
-        } else if (now > notOnOrAfterTime + this.config.allowedClockSkewMs) {
-          errors.push('Assertion has expired (NotOnOrAfter in the past)');
+        const issueInstantTime = Date.parse(assertionData.issueInstant);
+        if (Number.isNaN(issueInstantTime)) {
+          errors.push('Invalid IssueInstant timestamp on Assertion');
+        } else if (now > issueInstantTime + this.config.allowedClockSkewMs) {
+          errors.push('Assertion has expired (IssueInstant too old)');
+        } else if (now + this.config.allowedClockSkewMs < issueInstantTime) {
+          errors.push('Assertion IssueInstant is in the future');
         } else {
           checks.timestampsValid = true;
         }
@@ -303,12 +305,9 @@ export class AuthValidatorService {
       assertionElement,
     )[0] as Element | undefined;
  
-    const notOnOrAfterNode = select(
-      ".//*[local-name()='SubjectConfirmationData' or local-name()='Conditions']",
-      assertionElement,
-    )[0] as Element | undefined;
-    const notOnOrAfter =
-      notOnOrAfterNode?.getAttribute('NotOnOrAfter') ?? undefined;
+    // In SAML, the Assertion itself has an IssueInstant attribute
+    // that indicates when it was created.
+    const issueInstant = assertionElement.getAttribute('IssueInstant') ?? undefined;
  
     const attributeNodes = select(
       ".//*[local-name()='Attribute']",
@@ -333,7 +332,7 @@ export class AuthValidatorService {
       issuer: getText(issuerNode),
       subjectNameId: getText(subjectNameIdNode),
       audience: getText(audienceNode),
-      notOnOrAfter,
+      issueInstant,
       attributes,
     };
   }
