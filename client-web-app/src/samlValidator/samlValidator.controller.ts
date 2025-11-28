@@ -1,7 +1,7 @@
 import { BadRequestException, Controller, Post, Query } from '@nestjs/common';
 import { SamlValidatorService } from './samlValidator.service';
 
-@Controller('auth-validator')
+@Controller('saml-validator')
 export class SamlValidatorController {
   constructor(private readonly samlValidatorService: SamlValidatorService) {}
 

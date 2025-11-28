@@ -12,7 +12,7 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { SamlValidatorConfig } from './types/samlValidator.types';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
-const DEFAULT_ACS_URL = 'http://localhost:7000/api/auth-validator/acs';
+const DEFAULT_ACS_URL = 'http://localhost:7000/api/saml-validator/acs';
 const DEFAULT_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const DEFAULT_PRIVATE_KEY_PATH = '../../certs/private.key';
 const DEFAULT_SIMULATOR_CERT_PATH = '../../certs/public.pem';
