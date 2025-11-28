@@ -9,7 +9,7 @@ import {
   SamlValidationResult,
 } from './types/samlValidator.types';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
-import { AuthValidatorConfig } from './types/samlValidator.types';
+import { SamlValidatorConfig } from './types/samlValidator.types';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 const DEFAULT_ACS_URL = 'http://localhost:7000/api/auth-validator/acs';
@@ -18,13 +18,13 @@ const DEFAULT_PRIVATE_KEY_PATH = '../../certs/private.key';
 const DEFAULT_SIMULATOR_CERT_PATH = '../../certs/public.pem';
 
 @Injectable()
-export class AuthValidatorService {
-  private readonly config: AuthValidatorConfig;
+export class SamlValidatorService {
+  private readonly config: SamlValidatorConfig;
 
   /**
    * Load validator configuration
    */
-  private loadConfig(): AuthValidatorConfig {
+  private loadConfig(): SamlValidatorConfig {
     return {
       acsUrl: DEFAULT_ACS_URL,
       expectedAudience: undefined,

@@ -1,9 +1,9 @@
 import { BadRequestException, Controller, Post, Query } from '@nestjs/common';
-import { AuthValidatorService } from './authValidator.service';
+import { SamlValidatorService } from './samlValidator.service';
 
 @Controller('auth-validator')
-export class AuthValidatorController {
-  constructor(private readonly authValidatorService: AuthValidatorService) {}
+export class SamlValidatorController {
+  constructor(private readonly samlValidatorService: SamlValidatorService) {}
 
   /**
    * Assertion Consumer Service (ACS) endpoint.
@@ -18,7 +18,7 @@ export class AuthValidatorController {
     if (!samlResponseQuery) {
       throw new BadRequestException('Missing SAMLResponse parameter');
     }
-    const validationResult = await this.authValidatorService.validateSamlResponse(
+    const validationResult = await this.samlValidatorService.validateSamlResponse(
       samlResponseQuery,
       relayStateQuery,
     );

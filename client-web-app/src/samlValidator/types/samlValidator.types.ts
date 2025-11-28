@@ -1,4 +1,4 @@
-export interface AuthValidatorConfig {
+export interface SamlValidatorConfig {
   readonly acsUrl: string;
   readonly expectedAudience?: string;
   readonly expectedIssuer?: string;

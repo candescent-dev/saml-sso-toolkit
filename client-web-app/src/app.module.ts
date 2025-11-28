@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AppController } from './app.controller';
-import { AuthValidatorModule } from './authValidator/authValidator.module';
+import { SamlValidatorModule } from './samlValidator/samlValidator.module';
 
 @Module({
-  imports: [AuthValidatorModule],
+  imports: [SamlValidatorModule],
   controllers: [AppController],
   providers: [AppService],
 })
