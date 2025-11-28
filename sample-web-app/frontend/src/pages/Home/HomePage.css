@@ -237,6 +237,7 @@
   display: flex;
   gap: var(--spacing-lg);
   flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 .icon-button {
@@ -252,8 +253,6 @@
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--transition-base);
-  max-width: var(--button-max-width);
-  width: var(--button-width-md);
   text-align: center;
   font-weight: var(--font-weight-medium);
 }
@@ -377,8 +376,6 @@
   }
 
   .icon-button {
-    width: -webkit-fill-available;
-    max-width: none;
     font-size: var(--font-size-base);
     padding: var(--spacing-md) 0.9rem;
   }
@@ -421,8 +418,6 @@
   }
 
   .icon-button {
-    width: var(--button-width-md);
-    max-width: none;
     font-size: var(--font-size-base);
     padding: 0.6rem var(--spacing-xl);
   }
@@ -452,21 +447,7 @@
     flex-wrap: wrap;
   }
 
-  .button-row button {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
   .icon-button {
-    width: var(--button-width-md);
-    max-width: none;
     font-size: var(--font-size-md);
     padding: 0.6rem var(--input-padding-horizontal-large);
   }
@@ -484,7 +465,6 @@
   }
 
   .icon-button {
-    width: var(--button-width-md);
     font-size: var(--font-size-xl);
   }
 
