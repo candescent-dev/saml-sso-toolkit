@@ -4,10 +4,14 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { APP_CONFIG } from '../src/appConfig/appConfig.provider';
 
-describe('AppController (e2e)', () => {
+describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
+  let agent: any;
+
+  const samlLoginApi = 'saml/login';
 
   beforeEach(async () => {
+    try {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -16,11 +20,24 @@ describe('AppController (e2e)', () => {
           backendPort: 9999,
         })
     .compile();
-    app = moduleFixture.createNestApplication();
-    await app.init();
+      app = moduleFixture.createNestApplication();
+      app.useLogger(['log', 'error', 'warn', 'debug', 'verbose']);
+      console.log('** BEFORE init **');
+      await app.init();
+      agent = request.agent(app.getHttpServer());
+      jest.useFakeTimers();
+      console.log('app initialized successfully');
+    } catch (e) {
+      console.error('Beforeall failed:', e);
+      throw e;
+    }
   });
 
-  it('/health (GET)', () => {
+   afterAll(async () => {
+    // await app.close();
+  });
+
+  it('check health of backend -> /health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
@@ -31,4 +48,13 @@ describe('AppController (e2e)', () => {
         expect(typeof res.body.timestamp).toBe('string');
       });
   });
+
+  it('validate POST client api should have client details in response', async () => {
+    console.log('validate POST client api should have client details in response');
+    const res = await agent.post(samlLoginApi).catch((err: any) => {
+      console.error('Supertest Error:', err.res?.text || err);
+      throw err;
+    });
+  });
+
 });
