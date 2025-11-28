@@ -5,7 +5,6 @@ import { AuthValidatorService } from './authValidator.service';
 export class AuthValidatorController {
   constructor(private readonly authValidatorService: AuthValidatorService) {}
 
-
   /**
    * Assertion Consumer Service (ACS) endpoint.
    * Receives Base64-encoded SAMLResponse (and optional RelayState) via query
@@ -13,20 +12,17 @@ export class AuthValidatorController {
    */
   @Post('acs')
   async acs(
-    @ Query('SAMLResponse') samlResponseQuery?: string,
+    @Query('SAMLResponse') samlResponseQuery?: string,
     @Query('RelayState') relayStateQuery?: string,
   ): Promise<any> {
     if (!samlResponseQuery) {
       throw new BadRequestException('Missing SAMLResponse parameter');
     }
- 
     const validationResult = await this.authValidatorService.validateSamlResponse(
       samlResponseQuery,
       relayStateQuery,
     );
- 
     const assertion = validationResult.assertion;
- 
     return {
       issuer: assertion?.issuer ?? null,
       audience: assertion?.audience ?? null,

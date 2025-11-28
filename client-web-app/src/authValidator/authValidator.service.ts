@@ -1,32 +1,44 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
-import xmlenc from 'xml-encryption';
-import { SignedXml } from 'xml-crypto';
 import * as xpath from 'xpath';
-import { AuthValidatorConfig } from '../types/auth-validator-config.types';
-import { SamlAssertionAttributes } from '../types/saml-assertion-attributes.types';
-import { SamlAssertionData } from '../types/saml-assertion-data.types';
-import { SamlValidationChecks } from '../types/saml-validation-checks.types';
-import { SamlValidationResult } from '../types/saml-validation-result.types';
- 
-const logger = new Logger('SAMLService');
- 
-const CONFIG_PATH = '../authValidatorConfig/config.json';
+import xmlenc from 'xml-encryption';
+import {
+  SamlAssertionAttributes,
+  SamlAssertionData,
+  SamlValidationChecks,
+  SamlValidationResult,
+} from './types/samlValidator.types';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { AuthValidatorConfig } from './types/samlValidator.types';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+
 const DEFAULT_ACS_URL = 'http://localhost:7000/api/auth-validator/acs';
 const DEFAULT_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const DEFAULT_PRIVATE_KEY_PATH = '../../certs/private.key';
 const DEFAULT_SIMULATOR_CERT_PATH = '../../certs/public.pem';
- 
+
 @Injectable()
 export class AuthValidatorService {
   private readonly config: AuthValidatorConfig;
- 
+
+  /**
+   * Load validator configuration
+   */
+  private loadConfig(): AuthValidatorConfig {
+    return {
+      acsUrl: DEFAULT_ACS_URL,
+      expectedAudience: undefined,
+      expectedIssuer: 'Candescent',
+      allowedClockSkewMs: DEFAULT_CLOCK_SKEW_MS,
+      privateKeyPath: DEFAULT_PRIVATE_KEY_PATH,
+      simulatorPublicCertPath: DEFAULT_SIMULATOR_CERT_PATH,
+    };
+  }
+
   constructor() {
     this.config = this.loadConfig();
   }
- 
+
   /**
    * Main entry: validates incoming Base64-encoded SAMLResponse.
    */
@@ -37,17 +49,14 @@ export class AuthValidatorService {
     try {
       const samlXml = Buffer.from(base64SamlResponse, 'base64').toString('utf-8');
       const doc = new DOMParser().parseFromString(samlXml, 'text/xml');
- 
       // Log the document element name
-  if (doc && doc.documentElement) {
+      if (doc && doc.documentElement) {
         const serializedDoc = new XMLSerializer().serializeToString(doc);
-        logger.log(`Parsed SAML Document: ${serializedDoc}`);
-        logger.log(`Root element: ${doc.documentElement.nodeName}`);
+        console.log(`Parsed SAML Document: ${serializedDoc}`);
+        console.log(`Root element: ${doc.documentElement.nodeName}`);
       } else {
-        logger.warn('Failed to parse SAMLResponse XML');
+        console.warn('Failed to parse SAMLResponse XML');
       }
- 
- 
       if (!doc || !doc.documentElement) {
         return this.failure(['Failed to parse SAMLResponse XML'], {
           xmlStructure: false,
@@ -60,7 +69,6 @@ export class AuthValidatorService {
           assertionContentValid: false,
         });
       }
- 
       const checks: SamlValidationChecks = {
         xmlStructure: true,
         encryptedAssertionPresent: false,
@@ -72,76 +80,57 @@ export class AuthValidatorService {
         assertionContentValid: false,
       };
       const errors: string[] = [];
- 
       const responseElement = doc.documentElement;
       if (responseElement.localName !== 'Response') {
         checks.xmlStructure = false;
         errors.push('Root element is not samlp:Response');
       }
- 
       // Destination validation
       const destinationAttr = responseElement.getAttribute('Destination');
       if (!destinationAttr) {
         errors.push('Missing Destination on SAML Response');
       } else if (!this.urlsEqual(destinationAttr, this.config.acsUrl)) {
-        errors.push(
-          `Destination mismatch. Expected ${this.config.acsUrl}, got ${destinationAttr}`,
-        );
+        errors.push(`Destination mismatch. Expected ${this.config.acsUrl}, got ${destinationAttr}`);
       } else {
         checks.destinationValid = true;
       }
- 
-     // Find EncryptedAssertion
+      // Find EncryptedAssertion
       const encryptedAssertionNode = xpath.select1(
         "//*[local-name()='EncryptedAssertion']",
         responseElement,
       ) as Element | undefined | null;
- 
       if (!encryptedAssertionNode) {
         errors.push('<saml:EncryptedAssertion> not found in SAMLResponse');
       } else {
-        const encryptedAssertionXml = new XMLSerializer().serializeToString(
-          encryptedAssertionNode,
-        );
-        logger.log(`<saml:EncryptedAssertion> found: ${encryptedAssertionXml}`);
+        const encryptedAssertionXml = new XMLSerializer().serializeToString(encryptedAssertionNode);
+        console.log(`<saml:EncryptedAssertion> found: ${encryptedAssertionXml}`);
         checks.encryptedAssertionPresent = true;
       }
- 
       if (!encryptedAssertionNode) {
         return this.failure(errors, checks);
       }
- 
       // Extract <xenc:EncryptedData> and decrypt with our private key
       const encryptedDataNode = xpath.select1(
         ".//*[local-name()='EncryptedData']",
         encryptedAssertionNode,
       ) as Element | undefined | null;
- 
       if (!encryptedDataNode) {
         errors.push('<xenc:EncryptedData> not found inside <EncryptedAssertion>');
         return this.failure(errors, checks);
       }
- 
       const encryptedDataXml = new XMLSerializer().serializeToString(encryptedDataNode);
       const decryptedAssertionXml = await this.decryptAssertion(encryptedDataXml);
       checks.decryptedAssertion = true;
- 
-      logger.log(`Decrypted <saml:Assertion>: ${decryptedAssertionXml}`);
- 
+      console.log(`Decrypted <saml:Assertion>: ${decryptedAssertionXml}`);
       // Parse decrypted assertion
-      const assertionDoc = new DOMParser().parseFromString(
-        decryptedAssertionXml,
-        'text/xml',
-      );
+      const assertionDoc = new DOMParser().parseFromString(decryptedAssertionXml, 'text/xml');
       const assertionElement = assertionDoc.documentElement;
       if (!assertionElement || assertionElement.localName !== 'Response') {
         errors.push('Decrypted XML is not a valid <saml:Assertion>');
         return this.failure(errors, checks);
       }
-     
       // Extract assertion data
       const assertionData = this.extractAssertionData(assertionElement);
- 
       // Issuer validation (optional, based on config)
       if (this.config.expectedIssuer) {
         if (assertionData.issuer !== this.config.expectedIssuer) {
@@ -152,7 +141,6 @@ export class AuthValidatorService {
           );
         }
       }
- 
       // Audience validation
       if (assertionData.audience) {
         if (
@@ -168,7 +156,6 @@ export class AuthValidatorService {
       } else {
         errors.push('Audience not found in Assertion Conditions');
       }
- 
       // Timestamp validation (IssueInstant)
       const now = Date.now();
       if (!assertionData.issueInstant) {
@@ -185,12 +172,9 @@ export class AuthValidatorService {
           checks.timestampsValid = true;
         }
       }
- 
       // Content validation – ensure key attributes and subject are present
       const requiredAttrs = ['firstName', 'lastName', 'email', 'memberId'];
-      const missingAttrs = requiredAttrs.filter(
-        (name) => !assertionData.attributes[name],
-      );
+      const missingAttrs = requiredAttrs.filter((name) => !assertionData.attributes[name]);
       if (!assertionData.subjectNameId) {
         errors.push('Subject NameID is missing from Assertion');
       }
@@ -199,7 +183,6 @@ export class AuthValidatorService {
       } else if (assertionData.subjectNameId) {
         checks.assertionContentValid = true;
       }
- 
       // Optional: if RelayState contains expected attributes, we could compare them here.
       if (relayState) {
         try {
@@ -215,16 +198,13 @@ export class AuthValidatorService {
               }
             }
             if (mismatched.length > 0) {
-              errors.push(
-                `Assertion attributes do not match RelayState: ${mismatched.join('; ')}`,
-              );
+              errors.push(`Assertion attributes do not match RelayState: ${mismatched.join('; ')}`);
             }
           }
         } catch {
           // Ignore malformed RelayState – do not fail whole validation.
         }
       }
- 
       const ok =
         checks.xmlStructure &&
         checks.encryptedAssertionPresent &&
@@ -235,7 +215,6 @@ export class AuthValidatorService {
         checks.timestampsValid &&
         checks.assertionContentValid &&
         errors.length === 0;
- 
       return {
         checks,
         errors,
@@ -249,21 +228,7 @@ export class AuthValidatorService {
       );
     }
   }
- 
-  /**
-   * Load validator configuration
-   */
-  private loadConfig(): AuthValidatorConfig {
-    return {
-    acsUrl: DEFAULT_ACS_URL,
-    expectedAudience: undefined,
-    expectedIssuer: 'Candescent',
-    allowedClockSkewMs: DEFAULT_CLOCK_SKEW_MS,
-    privateKeyPath: DEFAULT_PRIVATE_KEY_PATH,      
-    simulatorPublicCertPath: DEFAULT_SIMULATOR_CERT_PATH,
-  };
-  }
- 
+
   /**
    * Decrypts the <xenc:EncryptedData> block using the configured private key.
    * Successful decryption implies the assertion was encrypted with our public certificate.
@@ -274,7 +239,6 @@ export class AuthValidatorService {
       throw new Error(`Private key file not found at: ${privateKeyFullPath}`);
     }
     const privateKey = fs.readFileSync(privateKeyFullPath, 'utf-8');
- 
     return await new Promise<string>((resolve, reject) => {
       xmlenc.decrypt(encryptedDataXml, { key: privateKey }, (err, result) => {
         if (err) return reject(err);
@@ -283,19 +247,17 @@ export class AuthValidatorService {
       });
     });
   }
- 
+
   /**
    * Extracts subject, audience, timestamps, and attributes from a decrypted Assertion.
    */
   private extractAssertionData(assertionElement: Element): SamlAssertionData {
     const select = xpath.select;
     const getText = (node: Node | undefined | null): string | undefined =>
-      node && node.firstChild ? node.firstChild.nodeValue ?? undefined : undefined;
- 
-    const issuerNode = select(
-      ".//*[local-name()='Issuer']",
-      assertionElement,
-    )[0] as Element | undefined;
+      node && node.firstChild ? (node.firstChild.nodeValue ?? undefined) : undefined;
+    const issuerNode = select(".//*[local-name()='Issuer']", assertionElement)[0] as
+      | Element
+      | undefined;
     const subjectNameIdNode = select(
       ".//*[local-name()='Subject']/*[local-name()='NameID']",
       assertionElement,
@@ -304,30 +266,22 @@ export class AuthValidatorService {
       ".//*[local-name()='AudienceRestriction']/*[local-name()='Audience']",
       assertionElement,
     )[0] as Element | undefined;
- 
     // In SAML, the Assertion itself has an IssueInstant attribute
     // that indicates when it was created.
     const issueInstant = assertionElement.getAttribute('IssueInstant') ?? undefined;
- 
-    const attributeNodes = select(
-      ".//*[local-name()='Attribute']",
-      assertionElement,
-    ) as Element[];
- 
+    const attributeNodes = select(".//*[local-name()='Attribute']", assertionElement) as Element[];
     const attributes: SamlAssertionAttributes = {};
     for (const attrNode of attributeNodes) {
       const name = attrNode.getAttribute('Name');
       if (!name) continue;
-      const valueNode = select(
-        ".//*[local-name()='AttributeValue']",
-        attrNode,
-      )[0] as Element | undefined;
+      const valueNode = select(".//*[local-name()='AttributeValue']", attrNode)[0] as
+        | Element
+        | undefined;
       const value = getText(valueNode);
       if (typeof value === 'string') {
         attributes[name] = value;
       }
     }
- 
     return {
       issuer: getText(issuerNode),
       subjectNameId: getText(subjectNameIdNode),
@@ -336,7 +290,7 @@ export class AuthValidatorService {
       attributes,
     };
   }
- 
+
   /**
    * Utility to normalise and compare URLs for Destination/ACS validation.
    */
@@ -344,11 +298,8 @@ export class AuthValidatorService {
     const normalise = (url: string) => url.replace(/\/+$/, '');
     return normalise(a) === normalise(b);
   }
- 
-  private failure(
-    errors: string[],
-    checks: SamlValidationChecks,
-  ): SamlValidationResult {
+
+  private failure(errors: string[], checks: SamlValidationChecks): SamlValidationResult {
     return {
       checks,
       errors,
