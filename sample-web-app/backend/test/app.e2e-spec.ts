@@ -8,7 +8,7 @@ describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
   let agent: any;
 
-  const samlLoginApi = 'saml/login';
+  const samlLoginApi = '/saml/login';
 
   beforeEach(async () => {
     try {
