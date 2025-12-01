@@ -24,10 +24,10 @@ export class SamlController {
       const response: SamlResult =
         await this.samlService.generateAndSendSamlResponse(samlRequestDto);
       return response;
-    } catch (error: unknown) {
-      // Ensure strict typing for error message
-      const message = error instanceof Error ? error.message : 'Saml failed';
-      throw new HttpException({ success: false, message }, HttpStatus.BAD_REQUEST);
+    } catch (error: any) {
+      const message = error.message || 'SAML failed';
+      const status = error.status || HttpStatus.BAD_REQUEST;
+      throw new HttpException({ success: false, message }, status);
     }
   }
 }

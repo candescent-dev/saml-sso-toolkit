@@ -26,6 +26,16 @@ export class SamlService {
   constructor(private readonly httpService: HttpService) {}
 
   /**
+   * Throws a structured error used by the controller
+   * @param message - Error message
+   * @param status - HTTP status code (default: 400)
+   * @throws {{ message: string, status: number }}
+   */
+  private throwServiceError(message: string, status = 400): never {
+    throw { message, status };
+  }
+
+  /**
    * Orchestrates the SAML response workflow
    * @param samlRequestDto - validated saml request
    * @returns final SAML response and metadata
@@ -138,14 +148,17 @@ export class SamlService {
     try {
       xmlDoc = create(samlObject);
     } catch (e) {
-      throw new Error('Failed to construct SAML Response XML: ' + (e as Error).message);
+      this.throwServiceError('Failed to construct SAML Response XML: ' + (e as Error).message, 500);
     }
     const samlResponseXml = xmlDoc.end({ headless: true, prettyPrint: true });
     // Locate the Assertion node to extract raw XML using predicate function
     const xmlRoot = xmlDoc.root();
     const assertionNode = xmlRoot.find((node) => node.node.nodeName === 'saml:Assertion');
     if (!assertionNode) {
-      throw new Error('Generated SAML Response XML is missing the <saml:Assertion> node');
+      this.throwServiceError(
+        'Generated SAML Response XML is missing the <saml:Assertion> node',
+        500,
+      );
     }
     const assertionXml = assertionNode.end({ headless: true });
     return { samlResponseXml, assertionXml };
@@ -193,12 +206,12 @@ export class SamlService {
     // Ensure Assertion has an ID or signing WILL break
     const assertionIdMatch = xml.match(/<\s*[^>]*Assertion[^>]*ID="([^"]+)"/);
     if (!assertionIdMatch) {
-      throw new Error('SAML Assertion missing ID attribute — cannot sign.');
+      this.throwServiceError('SAML Assertion missing ID attribute — cannot sign', 500);
     }
     // Load private key
     const privateKeyPath = path.resolve(__dirname, PRIVATE_KEY_PATH);
     if (!fs.existsSync(privateKeyPath)) {
-      throw new Error(`Private key file not found at: ${privateKeyPath}`);
+      this.throwServiceError(`Private key file not found at: ${privateKeyPath}`, 500);
     }
     const privateKey = fs.readFileSync(privateKeyPath, 'utf-8');
     // Strip headers for KeyInfo
@@ -235,19 +248,19 @@ export class SamlService {
    */
   private validateX509Certificate(cert: string): string {
     if (!cert) {
-      throw new Error('Certificate is required.');
+      this.throwServiceError('Certificate is required', 400);
     }
     // Normalize whitespace
     const normalized = cert.trim().replace(/\r/g, '');
     const pemHeader = '-----BEGIN CERTIFICATE-----';
     const pemFooter = '-----END CERTIFICATE-----';
     if (!normalized.includes(pemHeader) || !normalized.includes(pemFooter)) {
-      throw new Error('Invalid certificate: Missing PEM header/footer.');
+      this.throwServiceError('Invalid certificate format', 422);
     }
     try {
       new X509Certificate(normalized);
     } catch (err) {
-      throw new Error('Invalid certificate: Parsing failed. ' + (err as Error).message);
+      this.throwServiceError('Certificate parsing failed: ' + (err as Error).message, 422);
     }
     return normalized;
   }
@@ -263,7 +276,7 @@ export class SamlService {
     try {
       // Validate certificate presence
       if (!publicCertificate) {
-        throw new Error('Public certificate is required for encryption.');
+        this.throwServiceError('Public certificate is required for encryption', 400);
       }
       // Validate certificate
       const validatedCert = this.validateX509Certificate(publicCertificate);
@@ -277,7 +290,7 @@ export class SamlService {
       const certObj = new X509Certificate(pemCert);
       const publicKey = certObj.publicKey.export({ type: 'spki', format: 'pem' });
       if (!publicKey) {
-        throw new Error('Failed to extract public key from certificate');
+        this.throwServiceError('Failed to extract public key from certificate', 422);
       }
       // Perform encryption
       const encryptedXml = await new Promise<string>((resolve, reject) => {
@@ -291,7 +304,7 @@ export class SamlService {
           },
           (err, result) => {
             if (err) return reject(err);
-            if (!result) return reject(new Error('xml-encryption returned empty output.'));
+            if (!result) return reject(new Error('xml-encryption returned empty output'));
             resolve(result);
           },
         );
@@ -300,12 +313,15 @@ export class SamlService {
       try {
         create(encryptedXml); // will throw if XML is malformed
       } catch (err) {
-        throw new Error('Encrypted SAML Assertion is not valid XML: ' + (err as Error).message);
+        this.throwServiceError(
+          'Encrypted SAML Assertion is not valid XML: ' + (err as Error).message,
+          500,
+        );
       }
       return encryptedXml;
     } catch (error) {
       console.error('Encryption error:', error);
-      throw new Error(`SAML encryption failed: ${(error as Error).message}`);
+      this.throwServiceError(`SAML encryption failed: ${(error as Error).message}`, 500);
     }
   }
 
@@ -325,12 +341,12 @@ export class SamlService {
     const responseRoot = responseDoc.root();
     // Guard: Ensure root is <samlp:Response>
     if (!responseRoot || responseRoot.node.nodeName !== 'samlp:Response') {
-      throw new Error('Invalid SAML Response: Root element must be <samlp:Response>.');
+      this.throwServiceError('Invalid SAML Response: Root <samlp:Response> missing', 500);
     }
     // Locate the plaintext <Assertion>
     const assertionNode = responseRoot.find((node) => node.node.nodeName === 'saml:Assertion');
     if (!assertionNode) {
-      throw new Error('Original <saml:Assertion> not found for replacement.');
+      this.throwServiceError('Plaintext Assertion missing in SAML Response', 500);
     }
     // Remove plaintext assertion
     assertionNode.remove();
@@ -339,7 +355,7 @@ export class SamlService {
     const encryptedRoot = encryptedDoc.root();
     // Guard: Ensure it contains <EncryptedAssertion> or <EncryptedData>
     if (!encryptedRoot.node.nodeName.includes('Encrypted')) {
-      throw new Error('Encrypted assertion XML is not valid <EncryptedAssertion>.');
+      this.throwServiceError('Encrypted assertion XML is invalid', 500);
     }
     // Inject encrypted assertion
     const encryptedElement = responseRoot.ele('saml:EncryptedAssertion');
@@ -364,7 +380,7 @@ export class SamlService {
         timeout: TIMEOUT,
       });
       if (result.status < 200 || result.status >= 300) {
-        throw new Error(`ACS responded with status ${result.status}`);
+        this.throwServiceError(`ACS responded with status ${result.status}`, result.status || 502);
       }
       return {
         status: result.status,
@@ -373,11 +389,15 @@ export class SamlService {
     } catch (err) {
       // Axios-specific handling
       if (err.isAxiosError) {
-        throw new Error(
+        this.throwServiceError(
           `ACS request failed: ${err.response?.status ?? 'No response'} - ${err.message}`,
+          err.response?.status || 502,
         );
       }
-      throw new Error(`Unexpected error calling ACS endpoint: ${(err as Error).message}`);
+      this.throwServiceError(
+        `Unexpected error calling ACS endpoint: ${(err as Error).message}`,
+        500,
+      );
     }
   }
 }
