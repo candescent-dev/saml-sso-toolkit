@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import downloadIcon from '../../assets/download.svg';
 import greenTickIcon from '../../assets/green-tick.svg';
@@ -15,9 +15,20 @@ const SuccessPage: FC = () => {
 
   // Fetch data from Redux store
   const homeState = useAppSelector((state) => state.home);
-  const { acsUrl, publicCertificate, attributes } = homeState;
+  const { acsUrl, publicCertificate, attributes, xml } = homeState;
 
   const [isRunning, setIsRunning] = useState(false);
+  const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+  const downloadTimerRef = useRef<number | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (downloadTimerRef.current) {
+        clearTimeout(downloadTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleRunAnotherSimulation = async () => {
     // Check if we have the required data from Redux
@@ -41,11 +52,11 @@ const SuccessPage: FC = () => {
         navigate('/success');
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Navigate to error page with error info
-        const errorMessage = resultAction.payload || 'Simulation failed. Please try again.';
+        const errorPayload = resultAction.payload || { errorReason: 'Simulation failed. Please try again.' };
         navigate('/error', {
           state: {
-            errorCode: 'SIM_ERROR',
-            errorReason: errorMessage,
+            errorCode: errorPayload.errorCode || '',
+            errorReason: errorPayload.errorReason || '',
           },
         });
       }
@@ -57,8 +68,33 @@ const SuccessPage: FC = () => {
   };
 
   const handleMetaData = () => {
-    // Handle metadata action - can be implemented later
-    console.log('Meta Data clicked');
+    if (!xml) {
+      console.error('XML not available for download');
+      setDownloadMessage('XML not available for download');
+      return;
+    }
+
+    try {
+      // Create a blob from the XML string
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'saml-assertion.xml';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      // Show toast after successful download
+      if (downloadTimerRef.current) clearTimeout(downloadTimerRef.current);
+      downloadTimerRef.current = window.setTimeout(() => {
+        setDownloadMessage('saml-assertion.xml file downloaded');
+      }, 2000);
+    } catch (error) {
+      console.error('Error downloading XML:', error);
+      setDownloadMessage('Error downloading XML file');
+    }
   };
 
   return (
@@ -119,7 +155,7 @@ const SuccessPage: FC = () => {
               onClick={handleRunAnotherSimulation}
               disabled={isRunning || !acsUrl || !publicCertificate}
             >
-              {isRunning ? 'Running Simulation...' : 'Run Another Simulation'}
+              {isRunning ? <span className="spinner"></span> : 'Run Another Simulation'}
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleMetaData}>
               <img src={downloadIcon} alt="" className="btn-icon" />
@@ -132,6 +168,14 @@ const SuccessPage: FC = () => {
           </div>
         </div>
       </div>
+      {downloadMessage && (
+        <div className="download-toast">
+          <span>{downloadMessage}</span>
+          <button className="toast-close" onClick={() => setDownloadMessage(null)}>
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { AxiosError } from 'axios';
 import { HomeInputState, HomeState, ApiSuccessResponse, ApiErrorResponse } from './types';
 import { getApi } from '../../services/api';
 
@@ -25,19 +26,44 @@ const initialState: HomeState = {
 export const initiateSamlLogin = createAsyncThunk<
   ApiSuccessResponse,
   HomeInputState,
-  { rejectValue: string }
+  { rejectValue: { errorCode?: string; errorReason: string } }
 >('home/initiateSamlLogin', async (payload, { rejectWithValue }) => {
   try {
     const api = getApi();
     const response = await api.post<ApiResponse>('saml/login', payload);
     if (!response.data.success) {
-      return rejectWithValue(response.data.message);
+      const errorResponse = response.data as ApiErrorResponse;
+      return rejectWithValue({
+        errorCode: errorResponse.errorCode || String(response.status),
+        errorReason: errorResponse.errorReason || errorResponse.message,
+      });
     }
     return response.data;
   } catch (err: unknown) {
     let message = 'Unexpected server error';
-    if (err instanceof Error) message = err.message;
-    return rejectWithValue(message);
+    let statusCode: string | undefined;
+    
+    if (err instanceof AxiosError) {
+      // Extract status code from axios error
+      statusCode = err.response?.status ? String(err.response.status) : undefined;
+      message = err.response?.data?.message || err.message || 'Unexpected server error';
+      
+      // If response has error data, try to extract errorReason
+      if (err.response?.data && typeof err.response.data === 'object') {
+        const errorData = err.response.data as any;
+        return rejectWithValue({
+          errorCode: errorData.errorCode || statusCode,
+          errorReason: errorData.errorReason || errorData.message || message,
+        });
+      }
+    } else if (err instanceof Error) {
+      message = err.message;
+    }
+    
+    return rejectWithValue({
+      errorCode: statusCode,
+      errorReason: message,
+    });
   }
 });
 
@@ -97,7 +123,7 @@ const homeSlice = createSlice({
       .addCase(initiateSamlLogin.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          action.payload ||
+          action.payload?.errorReason ||
           'Something went wrong while initiating SSO login. Please check your inputs and try again.';
       });
     // -------------------- downloadPublicKey --------------------

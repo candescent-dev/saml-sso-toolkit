@@ -15,6 +15,8 @@ export interface ApiSuccessResponse {
 export interface ApiErrorResponse {
   success: false;
   message: string;
+  errorCode?: string;
+  errorReason?: string;
 }
 
 export interface HomeInputState {
