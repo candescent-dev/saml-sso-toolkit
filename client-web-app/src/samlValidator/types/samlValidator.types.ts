@@ -1,10 +1,7 @@
 export interface SamlValidatorConfig {
-  readonly acsUrl: string;
   readonly expectedAudience?: string;
   readonly expectedIssuer?: string;
   readonly allowedClockSkewMs: number;
-  readonly privateKeyPath: string;
-  readonly simulatorPublicCertPath: string;
 }
 
 export interface SamlAssertionAttributes {
@@ -16,19 +13,18 @@ export interface SamlValidationChecks {
   encryptedAssertionPresent: boolean;
   decryptedAssertion: boolean;
   signatureValid: boolean;
-  destinationValid: boolean;
   audienceValid: boolean;
   timestampsValid: boolean;
   assertionContentValid: boolean;
 }
 
-export interface SamlValidationResult {
-  checks: SamlValidationChecks;
-  errors: string[];
-  assertion?: SamlAssertionData;
+export interface SamlValidationFailureResponse {
+  message: string;
+  status: number;
+  checks?: SamlValidationChecks;
 }
 
-export interface SamlAssertionData {
+export interface SamlValidationSuccessResponse {
   issuer?: string;
   subjectNameId?: string;
   audience?: string;

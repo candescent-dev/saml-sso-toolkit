@@ -2,259 +2,208 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as xpath from 'xpath';
 import xmlenc from 'xml-encryption';
+import { SignedXml } from 'xml-crypto';
 import {
-  SamlAssertionAttributes,
-  SamlAssertionData,
   SamlValidationChecks,
-  SamlValidationResult,
+  SamlAssertionAttributes,
+  SamlValidationFailureResponse,
+  SamlValidationSuccessResponse,
 } from './types/samlValidator.types';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { SamlValidatorConfig } from './types/samlValidator.types';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
-const DEFAULT_ACS_URL = 'http://localhost:7000/api/saml-validator/acs';
-const DEFAULT_CLOCK_SKEW_MS = 5 * 60 * 1000;
-const DEFAULT_PRIVATE_KEY_PATH = '../../certs/private.key';
-const DEFAULT_SIMULATOR_CERT_PATH = '../../certs/public.pem';
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+const PRIVATE_KEY_PATH = '../../certs/private.key';
+const PUBLIC_KEY_PATH = '../../certs/public.pem';
 
 @Injectable()
 export class SamlValidatorService {
   private readonly config: SamlValidatorConfig;
-
-  /**
-   * Load validator configuration
-   */
-  private loadConfig(): SamlValidatorConfig {
-    return {
-      acsUrl: DEFAULT_ACS_URL,
-      expectedAudience: undefined,
-      expectedIssuer: 'Candescent',
-      allowedClockSkewMs: DEFAULT_CLOCK_SKEW_MS,
-      privateKeyPath: DEFAULT_PRIVATE_KEY_PATH,
-      simulatorPublicCertPath: DEFAULT_SIMULATOR_CERT_PATH,
-    };
-  }
+  private readonly privateKey: string;
+  private readonly publicKey: string;
 
   constructor() {
     this.config = this.loadConfig();
+    // Cache keys in memory
+    const privateKeyFullPath = path.resolve(__dirname, PRIVATE_KEY_PATH);
+    if (!fs.existsSync(privateKeyFullPath))
+      throw new Error(`Private key file not found at: ${privateKeyFullPath}`);
+    this.privateKey = fs.readFileSync(privateKeyFullPath, 'utf-8');
+    const publicKeyFullPath = path.resolve(__dirname, PUBLIC_KEY_PATH);
+    if (!fs.existsSync(publicKeyFullPath))
+      throw new Error(`Public key file not found at: ${publicKeyFullPath}`);
+    this.publicKey = fs.readFileSync(publicKeyFullPath, 'utf-8');
+  }
+
+  /** Load validator configuration (issuer, audience, clock skew) */
+  private loadConfig(): SamlValidatorConfig {
+    return {
+      expectedAudience: undefined,
+      expectedIssuer: 'Candescent',
+      allowedClockSkewMs: CLOCK_SKEW_MS,
+    };
   }
 
   /**
-   * Main entry: validates incoming Base64-encoded SAMLResponse.
+   * Validates a Base64-encoded SAMLResponse.
+   * Returns detailed validation results, including individual checks and errors.
    */
   async validateSamlResponse(
     base64SamlResponse: string,
-    relayState?: string,
-  ): Promise<SamlValidationResult> {
-    try {
-      const samlXml = Buffer.from(base64SamlResponse, 'base64').toString('utf-8');
-      const doc = new DOMParser().parseFromString(samlXml, 'text/xml');
-      // Log the document element name
-      if (doc && doc.documentElement) {
-        const serializedDoc = new XMLSerializer().serializeToString(doc);
-        console.log(`Parsed SAML Document: ${serializedDoc}`);
-        console.log(`Root element: ${doc.documentElement.nodeName}`);
-      } else {
-        console.warn('Failed to parse SAMLResponse XML');
-      }
-      if (!doc || !doc.documentElement) {
-        return this.failure(['Failed to parse SAMLResponse XML'], {
-          xmlStructure: false,
-          encryptedAssertionPresent: false,
-          decryptedAssertion: false,
-          signatureValid: false,
-          destinationValid: false,
-          audienceValid: false,
-          timestampsValid: false,
-          assertionContentValid: false,
-        });
-      }
-      const checks: SamlValidationChecks = {
-        xmlStructure: true,
-        encryptedAssertionPresent: false,
-        decryptedAssertion: false,
-        signatureValid: false,
-        destinationValid: false,
-        audienceValid: false,
-        timestampsValid: false,
-        assertionContentValid: false,
-      };
-      const errors: string[] = [];
-      const responseElement = doc.documentElement;
-      if (responseElement.localName !== 'Response') {
-        checks.xmlStructure = false;
-        errors.push('Root element is not samlp:Response');
-      }
-      // Destination validation
-      const destinationAttr = responseElement.getAttribute('Destination');
-      if (!destinationAttr) {
-        errors.push('Missing Destination on SAML Response');
-      } else if (!this.urlsEqual(destinationAttr, this.config.acsUrl)) {
-        errors.push(`Destination mismatch. Expected ${this.config.acsUrl}, got ${destinationAttr}`);
-      } else {
-        checks.destinationValid = true;
-      }
-      // Find EncryptedAssertion
-      const encryptedAssertionNode = xpath.select1(
-        "//*[local-name()='EncryptedAssertion']",
-        responseElement,
-      ) as Element | undefined | null;
-      if (!encryptedAssertionNode) {
-        errors.push('<saml:EncryptedAssertion> not found in SAMLResponse');
-      } else {
-        const encryptedAssertionXml = new XMLSerializer().serializeToString(encryptedAssertionNode);
-        console.log(`<saml:EncryptedAssertion> found: ${encryptedAssertionXml}`);
-        checks.encryptedAssertionPresent = true;
-      }
-      if (!encryptedAssertionNode) {
-        return this.failure(errors, checks);
-      }
-      // Extract <xenc:EncryptedData> and decrypt with our private key
-      const encryptedDataNode = xpath.select1(
-        ".//*[local-name()='EncryptedData']",
-        encryptedAssertionNode,
-      ) as Element | undefined | null;
-      if (!encryptedDataNode) {
-        errors.push('<xenc:EncryptedData> not found inside <EncryptedAssertion>');
-        return this.failure(errors, checks);
-      }
-      const encryptedDataXml = new XMLSerializer().serializeToString(encryptedDataNode);
-      const decryptedAssertionXml = await this.decryptAssertion(encryptedDataXml);
-      checks.decryptedAssertion = true;
-      console.log(`Decrypted <saml:Assertion>: ${decryptedAssertionXml}`);
-      // Parse decrypted assertion
-      const assertionDoc = new DOMParser().parseFromString(decryptedAssertionXml, 'text/xml');
-      const assertionElement = assertionDoc.documentElement;
-      if (!assertionElement || assertionElement.localName !== 'Response') {
-        errors.push('Decrypted XML is not a valid <saml:Assertion>');
-        return this.failure(errors, checks);
-      }
-      // Extract assertion data
-      const assertionData = this.extractAssertionData(assertionElement);
-      // Issuer validation (optional, based on config)
-      if (this.config.expectedIssuer) {
-        if (assertionData.issuer !== this.config.expectedIssuer) {
-          errors.push(
-            `Issuer mismatch. Expected ${this.config.expectedIssuer}, got ${
-              assertionData.issuer ?? 'N/A'
-            }`,
-          );
-        }
-      }
-      // Audience validation
-      if (assertionData.audience) {
-        if (
-          this.config.expectedAudience &&
-          assertionData.audience !== this.config.expectedAudience
-        ) {
-          errors.push(
-            `Audience mismatch. Expected ${this.config.expectedAudience}, got ${assertionData.audience}`,
-          );
-        } else {
-          checks.audienceValid = true;
-        }
-      } else {
-        errors.push('Audience not found in Assertion Conditions');
-      }
-      // Timestamp validation (IssueInstant)
-      const now = Date.now();
-      if (!assertionData.issueInstant) {
-        errors.push('IssueInstant not found on Assertion');
-      } else {
-        const issueInstantTime = Date.parse(assertionData.issueInstant);
-        if (Number.isNaN(issueInstantTime)) {
-          errors.push('Invalid IssueInstant timestamp on Assertion');
-        } else if (now > issueInstantTime + this.config.allowedClockSkewMs) {
-          errors.push('Assertion has expired (IssueInstant too old)');
-        } else if (now + this.config.allowedClockSkewMs < issueInstantTime) {
-          errors.push('Assertion IssueInstant is in the future');
-        } else {
-          checks.timestampsValid = true;
-        }
-      }
-      // Content validation – ensure key attributes and subject are present
-      const requiredAttrs = ['firstName', 'lastName', 'email', 'memberId'];
-      const missingAttrs = requiredAttrs.filter((name) => !assertionData.attributes[name]);
-      if (!assertionData.subjectNameId) {
-        errors.push('Subject NameID is missing from Assertion');
-      }
-      if (missingAttrs.length > 0) {
-        errors.push(`Missing required attributes: ${missingAttrs.join(', ')}`);
-      } else if (assertionData.subjectNameId) {
-        checks.assertionContentValid = true;
-      }
-      // Optional: if RelayState contains expected attributes, we could compare them here.
-      if (relayState) {
-        try {
-          const parsedState = JSON.parse(relayState) as {
-            attributes?: Record<string, string>;
-          };
-          if (parsedState.attributes) {
-            const mismatched: string[] = [];
-            for (const [key, expectedValue] of Object.entries(parsedState.attributes)) {
-              const actual = assertionData.attributes[key];
-              if (actual !== expectedValue) {
-                mismatched.push(`${key} (expected=${expectedValue}, actual=${actual ?? 'N/A'})`);
-              }
-            }
-            if (mismatched.length > 0) {
-              errors.push(`Assertion attributes do not match RelayState: ${mismatched.join('; ')}`);
-            }
-          }
-        } catch {
-          // Ignore malformed RelayState – do not fail whole validation.
-        }
-      }
-      const ok =
-        checks.xmlStructure &&
-        checks.encryptedAssertionPresent &&
-        checks.decryptedAssertion &&
-        checks.signatureValid &&
-        checks.destinationValid &&
-        checks.audienceValid &&
-        checks.timestampsValid &&
-        checks.assertionContentValid &&
-        errors.length === 0;
-      return {
-        checks,
-        errors,
-        assertion: assertionData,
-      };
-    } catch (error) {
-      // Unexpected errors surface as 500 to the caller, but we also
-      // keep the method signature stable.
-      throw new InternalServerErrorException(
-        `Failed to validate SAMLResponse: ${(error as Error).message}`,
+  ): Promise<SamlValidationSuccessResponse | SamlValidationFailureResponse> {
+    const samlXml = Buffer.from(base64SamlResponse, 'base64').toString('utf-8');
+    const doc = new DOMParser().parseFromString(samlXml, 'text/xml');
+    if (!doc?.documentElement) {
+      console.warn('Failed to parse SAMLResponse XML');
+      return this.failure('Failed to parse SAMLResponse XML', this.initChecks(), 400);
+    }
+    console.log(`Parsed SAML Document: ${new XMLSerializer().serializeToString(doc)}`);
+    console.log(`Root element: ${doc.documentElement.nodeName}`);
+    const responseElement = doc.documentElement;
+    const validationChecks = this.initChecks();
+    if (responseElement.localName !== 'Response') {
+      validationChecks.xmlStructure = false;
+      return this.failure('Root element is not samlp:Response', validationChecks, 400);
+    }
+    const encryptedAssertionNode = this.selectNode(
+      responseElement,
+      "//*[local-name()='EncryptedAssertion']",
+    );
+    if (!encryptedAssertionNode) {
+      return this.failure(
+        '<saml:EncryptedAssertion> not found in SAMLResponse',
+        validationChecks,
+        400,
       );
     }
+    validationChecks.encryptedAssertionPresent = true;
+    console.log(
+      `<saml:EncryptedAssertion> found: ${new XMLSerializer().serializeToString(encryptedAssertionNode)}`,
+    );
+    const encryptedDataNode = this.selectNode(
+      encryptedAssertionNode,
+      ".//*[local-name()='EncryptedData']",
+    );
+    if (!encryptedDataNode) {
+      return this.failure(
+        '<xenc:EncryptedData> not found inside <EncryptedAssertion>',
+        validationChecks,
+        400,
+      );
+    }
+    const decryptedAssertionXml = await this.decryptAssertion(encryptedDataNode);
+    validationChecks.decryptedAssertion = true;
+    console.log(`Decrypted <saml:Assertion>: ${decryptedAssertionXml}`);
+    const signatureValid = this.verifySignature(decryptedAssertionXml);
+    if (signatureValid !== true) return this.failure(signatureValid, validationChecks, 400);
+    validationChecks.signatureValid = true;
+    const assertionDoc = new DOMParser().parseFromString(decryptedAssertionXml, 'text/xml');
+    const assertionElement = assertionDoc.documentElement;
+    if (!assertionElement || assertionElement.localName !== 'Assertion') {
+      return this.failure('Decrypted XML is not a valid <saml:Assertion>', validationChecks, 400);
+    }
+    const assertionData = this.extractAssertionData(assertionElement);
+    if (this.config.expectedIssuer && assertionData.issuer !== this.config.expectedIssuer) {
+      return this.failure(
+        `Issuer mismatch. Expected ${this.config.expectedIssuer}, got ${assertionData.issuer ?? 'N/A'}`,
+        validationChecks,
+        400,
+      );
+    }
+    if (!assertionData.audience)
+      return this.failure('Audience not found in Assertion Conditions', validationChecks, 400);
+    else if (
+      !this.config.expectedAudience ||
+      assertionData.audience === this.config.expectedAudience
+    )
+      validationChecks.audienceValid = true;
+    else
+      return this.failure(
+        `Audience mismatch. Expected ${this.config.expectedAudience}, got ${assertionData.audience}`,
+        validationChecks,
+        400,
+      );
+    const now = Date.now();
+    if (!assertionData.issueInstant)
+      return this.failure('IssueInstant not found on Assertion', validationChecks, 400);
+    else {
+      const issueInstantTime = Date.parse(assertionData.issueInstant);
+      if (isNaN(issueInstantTime))
+        return this.failure('Invalid IssueInstant timestamp on Assertion', validationChecks, 400);
+      else if (now > issueInstantTime + this.config.allowedClockSkewMs)
+        return this.failure('Assertion has expired (IssueInstant too old)', validationChecks, 400);
+      else if (now + this.config.allowedClockSkewMs < issueInstantTime)
+        return this.failure('Assertion IssueInstant is in the future', validationChecks, 400);
+      else validationChecks.timestampsValid = true;
+    }
+    const requiredAttrs = ['firstName', 'lastName', 'email', 'memberId'];
+    const missingAttrs = requiredAttrs.filter((name) => !assertionData.attributes[name]);
+    if (!assertionData.subjectNameId)
+      return this.failure('Subject NameID is missing from Assertion', validationChecks, 400);
+    if (missingAttrs.length > 0)
+      return this.failure(
+        `Missing required attributes: ${missingAttrs.join(', ')}`,
+        validationChecks,
+        400,
+      );
+    return assertionData;
   }
 
-  /**
-   * Decrypts the <xenc:EncryptedData> block using the configured private key.
-   * Successful decryption implies the assertion was encrypted with our public certificate.
-   */
-  private async decryptAssertion(encryptedDataXml: string): Promise<string> {
-    const privateKeyFullPath = path.resolve(__dirname, this.config.privateKeyPath);
-    if (!fs.existsSync(privateKeyFullPath)) {
-      throw new Error(`Private key file not found at: ${privateKeyFullPath}`);
-    }
-    const privateKey = fs.readFileSync(privateKeyFullPath, 'utf-8');
-    return await new Promise<string>((resolve, reject) => {
-      xmlenc.decrypt(encryptedDataXml, { key: privateKey }, (err, result) => {
-        if (err) return reject(err);
-        if (!result) return reject(new Error('xml-encryption returned empty output.'));
-        resolve(result);
-      });
+  /** Helper to select single XML node with casting */
+  private selectNode(node: Node, xpathExpr: string): Element | undefined {
+    return xpath.select1(xpathExpr, node) as Element | undefined;
+  }
+
+  /** Initialize all validation checks to false */
+  private initChecks(): SamlValidationChecks {
+    return {
+      xmlStructure: false,
+      encryptedAssertionPresent: false,
+      decryptedAssertion: false,
+      signatureValid: false,
+      audienceValid: false,
+      timestampsValid: false,
+      assertionContentValid: false,
+    };
+  }
+
+  /** Decrypts <xenc:EncryptedData> using cached private key */
+  private async decryptAssertion(encryptedDataNode: Element): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      xmlenc.decrypt(
+        new XMLSerializer().serializeToString(encryptedDataNode),
+        { key: this.privateKey },
+        (err, result) => {
+          if (err) return reject(err);
+          if (!result) return reject(new Error('xml-encryption returned empty output.'));
+          resolve(result);
+        },
+      );
     });
   }
 
-  /**
-   * Extracts subject, audience, timestamps, and attributes from a decrypted Assertion.
-   */
-  private extractAssertionData(assertionElement: Element): SamlAssertionData {
+  /** Verifies signature using cached public key and adds errors if invalid */
+  private verifySignature(assertionXml: string): string | true {
+    try {
+      const doc = new DOMParser().parseFromString(assertionXml, 'text/xml');
+      const signatureNode = this.selectNode(doc, "//*[local-name()='Signature']");
+      if (!signatureNode) return 'Signature element not found in Assertion';
+      const sig = new SignedXml() as any;
+      sig.keyInfoProvider = { getKeyInfo: () => null, getKey: () => this.publicKey };
+      sig.loadSignature(signatureNode);
+      if (!sig.checkSignature(assertionXml))
+        return `Signature verification failed: ${sig.validationErrors?.join(', ')}`;
+      return true;
+    } catch (err) {
+      return `Signature verification error: ${(err as Error).message}`;
+    }
+  }
+
+  /** Extracts subject, audience, timestamps, and attributes from decrypted Assertion */
+  private extractAssertionData(assertionElement: Element): SamlValidationSuccessResponse {
     const select = xpath.select;
-    const getText = (node: Node | undefined | null): string | undefined =>
-      node && node.firstChild ? (node.firstChild.nodeValue ?? undefined) : undefined;
+    const getText = (node: Node | undefined | null) => node?.firstChild?.nodeValue ?? undefined;
     const issuerNode = select(".//*[local-name()='Issuer']", assertionElement)[0] as
       | Element
       | undefined;
@@ -266,22 +215,17 @@ export class SamlValidatorService {
       ".//*[local-name()='AudienceRestriction']/*[local-name()='Audience']",
       assertionElement,
     )[0] as Element | undefined;
-    // In SAML, the Assertion itself has an IssueInstant attribute
-    // that indicates when it was created.
     const issueInstant = assertionElement.getAttribute('IssueInstant') ?? undefined;
     const attributeNodes = select(".//*[local-name()='Attribute']", assertionElement) as Element[];
-    const attributes: SamlAssertionAttributes = {};
-    for (const attrNode of attributeNodes) {
+    const attributes: SamlAssertionAttributes = attributeNodes.reduce((acc, attrNode) => {
       const name = attrNode.getAttribute('Name');
-      if (!name) continue;
       const valueNode = select(".//*[local-name()='AttributeValue']", attrNode)[0] as
         | Element
         | undefined;
       const value = getText(valueNode);
-      if (typeof value === 'string') {
-        attributes[name] = value;
-      }
-    }
+      if (name && value) acc[name] = value;
+      return acc;
+    }, {} as SamlAssertionAttributes);
     return {
       issuer: getText(issuerNode),
       subjectNameId: getText(subjectNameIdNode),
@@ -291,18 +235,12 @@ export class SamlValidatorService {
     };
   }
 
-  /**
-   * Utility to normalise and compare URLs for Destination/ACS validation.
-   */
-  private urlsEqual(a: string, b: string): boolean {
-    const normalise = (url: string) => url.replace(/\/+$/, '');
-    return normalise(a) === normalise(b);
-  }
-
-  private failure(errors: string[], checks: SamlValidationChecks): SamlValidationResult {
-    return {
-      checks,
-      errors,
-    };
+  /** Helper method to construct a failure response with status code */
+  private failure(
+    message: string,
+    checks: SamlValidationChecks,
+    status = 400,
+  ): SamlValidationFailureResponse {
+    throw { message, checks, status };
   }
 }
