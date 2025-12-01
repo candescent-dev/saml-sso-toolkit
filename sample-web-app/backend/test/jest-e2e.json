@@ -6,5 +6,15 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+    "globals": {
+    "ts-jest": {
+      "tsconfig": {
+        "allowJs": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "rootDir": "../../"
+      }
+    }
+  },
   "transformIgnorePatterns": ["/node_modules/(?!xmlbuilder2|@oozcitak)/"]
 }
