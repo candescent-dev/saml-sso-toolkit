@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { APP_CONFIG } from '../src/appConfig/appConfig.provider';
-import { startClientTestServer } from "../../../client-web-app/src/test-bootstrap";
+import { startClientTestServer } from "../src/test-bootstrap";
 console.log(startClientTestServer);
 
 describe('SAML backend testcases (e2e)', () => {
