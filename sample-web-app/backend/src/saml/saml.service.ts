@@ -12,7 +12,7 @@ import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 const SAML_ISSUER: string = 'Candescent';
-const TIMEOUT: number = 5000;
+
 /**
  * Represents the separated SAML components.
  */
@@ -377,7 +377,6 @@ export class SamlService {
     try {
       const result = await this.httpService.axiosRef.post(url, null, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: TIMEOUT,
       });
       if (result.status < 200 || result.status >= 300) {
         this.throwServiceError(`ACS responded with status ${result.status}`, result.status || 502);
@@ -387,17 +386,25 @@ export class SamlService {
         data: result.data,
       };
     } catch (err) {
-      // Axios-specific handling
       if (err.isAxiosError) {
+        const status = err.response?.status || 502;
+        // Pick first available message from multiple possible locations
+        const finalMessage =
+          (err.response?.data?.message && typeof err.response.data.message === 'string'
+            ? err.response.data.message
+            : null) ||
+          (err.response?.message && typeof err.response.message === 'string'
+            ? err.response.message
+            : null) ||
+          (err.message && typeof err.message === 'string' ? err.message : 'ACS request failed');
+        this.throwServiceError(finalMessage, status);
+      } else {
+        // Non-Axios unexpected errors
         this.throwServiceError(
-          `ACS request failed: ${err.response?.status ?? 'No response'} - ${err.message}`,
-          err.response?.status || 502,
+          (err as Error).message || 'Unexpected error calling ACS endpoint',
+          500,
         );
       }
-      this.throwServiceError(
-        `Unexpected error calling ACS endpoint: ${(err as Error).message}`,
-        500,
-      );
     }
   }
 }
