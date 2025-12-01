@@ -75,16 +75,23 @@ const SuccessPage: FC = () => {
             </p>
           </div>
         </div>
-
+        {/* ACS URL */}
         <div className="success-content">
           <div className="form-group">
             <label htmlFor="acs-url" className="form-label acs-url-label">
               <img src={linkIcon} alt="Link" className="label-icon" />
               Test ACS URL
             </label>
-            <input type="text" id="acs-url" className="form-input" value={acsUrl || ''} readOnly />
+            <input
+              id="acs-url"
+              disabled
+              type="text"
+              autoComplete="off"
+              value={acsUrl || ''}
+              className="form-input"
+            />
           </div>
-
+          {/* Encryption Certificates */}
           <div className="form-group">
             <label htmlFor="certificate" className="form-label acs-url-label">
               <img src={shieldIcon} alt="Shield" className="label-icon" />
@@ -95,15 +102,16 @@ const SuccessPage: FC = () => {
                 <h3 className="certificate-label">certificate.pem</h3>
               </div>
               <textarea
+                rows={10}
+                disabled
                 id="certificate"
+                autoComplete="off"
                 className="form-textarea"
                 value={publicCertificate || ''}
-                readOnly
-                rows={10}
               />
             </div>
           </div>
-
+          {/* Run Another Simulation Button */}
           <div className="button-group">
             <button
               type="button"
@@ -118,7 +126,7 @@ const SuccessPage: FC = () => {
               XML Assertion
             </button>
           </div>
-
+          {/* Back to Home Page Button */}
           <div className="back-link">
             <Link to="/">Back to Home Page</Link>
           </div>

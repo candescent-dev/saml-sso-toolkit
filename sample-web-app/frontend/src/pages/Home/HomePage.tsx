@@ -224,12 +224,12 @@ const HomePage: FC = () => {
                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
               </label>
               <input
-                type="text"
                 id={key}
-                autoComplete="off"
                 disabled
-                className="inline-input"
+                type="text"
                 value={value}
+                autoComplete="off"
+                className="inline-input"
               />
             </div>
           ))}

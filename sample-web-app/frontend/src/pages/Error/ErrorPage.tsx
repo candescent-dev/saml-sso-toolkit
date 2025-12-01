@@ -82,11 +82,12 @@ const ErrorPage: FC = () => {
               Error Code
             </label>
             <input
+              disabled
               type="text"
               id="error-code"
-              className="form-input error-code-input"
               value={errorCode}
-              readOnly
+              autoComplete="off"
+              className="form-input error-code-input"
             />
           </div>
           {/* Error Reason */}
@@ -96,11 +97,12 @@ const ErrorPage: FC = () => {
               Error Reason
             </label>
             <textarea
-              id="error-reason"
-              className="form-textarea error-reason-textarea"
-              value={errorReason}
-              readOnly
               rows={4}
+              disabled
+              id="error-reason"
+              value={errorReason}
+              autoComplete="off"
+              className="form-textarea error-reason-textarea"
             />
           </div>
           {/* Retry Simulation Button */}
