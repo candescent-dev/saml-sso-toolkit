@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { SamlService } from './saml.service';
 import { SamlRequestDto } from './dto/samlRequest.dto';
-import { SamlResult } from '../types/saml.types';
+import { SamlResult } from './types/saml.types';
 
 /**
  * Controller responsible for handling saml-related routes.

@@ -6,7 +6,7 @@ import { SignedXml } from 'xml-crypto';
 import { X509Certificate } from 'crypto';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { SamlResult } from '../types/saml.types';
+import { ACSServerResponse, ACSServerData, SamlResult } from './types/saml.types';
 import { SamlRequestDto } from './dto/samlRequest.dto';
 import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
@@ -43,17 +43,21 @@ export class SamlService {
       signedAssertionXml,
       samlRequestDto.publicCertificate,
     );
-    console.log('encryptedAssertionXml', encryptedAssertionXml);
+    console.log('encryptedAssertionXml:', encryptedAssertionXml);
     // Step 4: Inject encrypted assertion back into the response
     const finalSamlResponse = this.replaceAssertionWithEncrypted(
       samlResponseXml,
       encryptedAssertionXml,
     );
-    console.log('finalSamlResponse', finalSamlResponse);
+    console.log('finalSamlResponse:', finalSamlResponse);
     // STEP 5: Base64-encode SAML Response
     const base64SamlResponse = Buffer.from(finalSamlResponse, 'utf-8').toString('base64');
     // Step 6: Send SAMLResponse to ACS endpoint
-    await this.sendSamlResponseToAcs(samlRequestDto.acsUrl, base64SamlResponse);
+    const response: ACSServerResponse<ACSServerData> = await this.sendSamlResponseToAcs(
+      samlRequestDto.acsUrl,
+      base64SamlResponse,
+    );
+    console.log('ACSServerResponse:', response);
     return {
       success: true,
       acsUrl: samlRequestDto.acsUrl,
