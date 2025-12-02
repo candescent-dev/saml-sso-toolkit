@@ -21,7 +21,6 @@ describe('SAML backend testcases (e2e)', () => {
   const samlLoginApi = '/saml/login';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
 
-
 const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
   const validCertificate = fs.readFileSync(certPath, 'utf8');
  payload = {
@@ -101,7 +100,7 @@ const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt'
       memberId: "AS83747TB",
       email: "john.doe@example.com"
     }
-  };
+  }
   const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
     .send(requestBody).catch((err: any) => {
       console.error('Supertest Error:', err.res?.text || err);
