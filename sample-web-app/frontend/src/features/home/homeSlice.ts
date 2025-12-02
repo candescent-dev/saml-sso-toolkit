@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
-import { HomeInputState, HomeState, ApiSuccessResponse, ApiErrorResponse } from './types';
 import { getApi } from '../../services/api';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { HomeInputState, HomeState, ApiSuccessResponse, ApiErrorResponse } from './types';
 
 type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
 
@@ -42,12 +42,10 @@ export const initiateSamlLogin = createAsyncThunk<
   } catch (err: unknown) {
     let message = 'Unexpected server error';
     let statusCode: string | undefined;
-    
     if (err instanceof AxiosError) {
       // Extract status code from axios error
       statusCode = err.response?.status ? String(err.response.status) : undefined;
       message = err.response?.data?.message || err.message || 'Unexpected server error';
-      
       // If response has error data, try to extract errorReason
       if (err.response?.data && typeof err.response.data === 'object') {
         const errorData = err.response.data as any;
@@ -59,7 +57,6 @@ export const initiateSamlLogin = createAsyncThunk<
     } else if (err instanceof Error) {
       message = err.message;
     }
-    
     return rejectWithValue({
       errorCode: statusCode,
       errorReason: message,
@@ -67,27 +64,15 @@ export const initiateSamlLogin = createAsyncThunk<
   }
 });
 
-// Download Public Key
-export const downloadPublicKey = createAsyncThunk<void, void, { rejectValue: string }>(
-  'home/downloadPublicKey',
-  async (_, { rejectWithValue }) => {
-    try {
-      const api = getApi();
-      await api.get<Blob>('public-key', { responseType: 'blob' });
-      return;
-    } catch (err: unknown) {
-      let message = 'Unexpected server error while downloading public key';
-      if (err instanceof Error) message = err.message;
-      return rejectWithValue(message);
-    }
-  }
-);
-
 // -------------------- SLICE --------------------
 const homeSlice = createSlice({
   name: 'home',
   initialState,
   reducers: {
+    /** Set loading state */
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
     setHomeInputState(state, action: PayloadAction<HomeInputState>) {
       state.acsUrl = action.payload.acsUrl;
       state.publicCertificate = action.payload.publicCertificate;
@@ -126,23 +111,9 @@ const homeSlice = createSlice({
           action.payload?.errorReason ||
           'Something went wrong while initiating SSO login. Please check your inputs and try again.';
       });
-    // -------------------- downloadPublicKey --------------------
-    builder
-      .addCase(downloadPublicKey.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(downloadPublicKey.fulfilled, (state) => {
-        state.loading = false;
-        state.error = null;
-      })
-      .addCase(downloadPublicKey.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to download public key';
-      });
   },
 });
 
 // -------------------- EXPORTS --------------------
-export const { setHomeInputState, resetHomeState } = homeSlice.actions;
+export const { setLoading, setHomeInputState, resetHomeState } = homeSlice.actions;
 export default homeSlice.reducer;

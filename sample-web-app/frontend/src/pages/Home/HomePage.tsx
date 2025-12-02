@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect, useRef, ChangeEvent, FormEvent } from '
 import { useNavigate } from 'react-router-dom';
 import downloadIcon from '../../assets/download.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setHomeInputState, initiateSamlLogin } from '../../features/home/homeSlice';
+import { setLoading, setHomeInputState, initiateSamlLogin } from '../../features/home/homeSlice';
 import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
 import { HomeInputState } from '../../features/home/types';
 import { getApi } from '../../services/api';
@@ -140,6 +140,7 @@ const HomePage: FC = () => {
     try {
       const api = getApi();
       const response = await api.get<Blob>('public-key', { responseType: 'blob' });
+      dispatch(setLoading(true));
       const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -152,9 +153,21 @@ const HomePage: FC = () => {
       if (downloadTimerRef.current) clearTimeout(downloadTimerRef.current);
       downloadTimerRef.current = window.setTimeout(() => {
         setDownloadMessage('public.pem file downloaded');
+        dispatch(setLoading(false));
       }, 2000);
     } catch (error: any) {
-      setDownloadMessage(error?.message || 'Something went wrong while downloading the public key');
+      dispatch(setLoading(false));
+      if (error.response && error.response.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          setDownloadMessage(json.message || 'Server error occurred');
+        } catch {
+          setDownloadMessage(text || 'Server error occurred');
+        }
+      } else {
+        setDownloadMessage(error?.message || 'Something went wrong while downloading');
+      }
     }
   };
 
@@ -249,11 +262,17 @@ const HomePage: FC = () => {
             onClick={handleSubmit}
             disabled={!isFormValid() || loading}
           >
-            {loading ? <span className="spinner"></span> : 'Run Simulation'}
+            {loading ? <span className="spinner" /> : 'Run Simulation'}
           </button>
           <button type="button" className="icon-button" onClick={handleDownloadPublicKey}>
-            <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
-            Candescent Public Key
+            {loading ? (
+              <span className="spinner" />
+            ) : (
+              <>
+                <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
+                Candescent Public Key
+              </>
+            )}
           </button>
         </div>
       </div>
