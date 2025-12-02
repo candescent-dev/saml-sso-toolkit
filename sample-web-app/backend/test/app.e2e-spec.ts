@@ -8,6 +8,10 @@ import { plainToInstance } from 'class-transformer';
 import { SamlRequestDto } from '../src/saml/dto/samlRequest.dto';
 import { validate } from 'class-validator';
 import nock from 'nock';
+import fs from 'fs';
+import path from 'path';
+
+console.log(startClientTestServer);
 
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
@@ -17,11 +21,11 @@ describe('SAML backend testcases (e2e)', () => {
   const samlLoginApi = '/saml/login';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
 
-  const validCertificate = `
------BEGIN CERTIFICATE-----\nMIIDqDCCApACCQDxEV5XnYNRzzANBgkqhkiG9w0BAQsFADCBlTELMAkGA1UEBhMC\nVVMxEDAOBgNVBAgMB0dlb3JnaWExEDAOBgNVBAcMB0F0bGFudGExEzARBgNVBAoM\nCkNhbmRlc2NlbnQxCzAJBgNVBAsMAklUMRswGQYDVQQDDBJpZHAuY2FuZGVzY2Vu\ndC5jb20xIzAhBgkqhkiG9w0BCQEWFGFkbWluQGNhbmRlc2NlbnQuY29tMB4XDTI1\nMTEyNTE0MTQyN1oXDTMwMTEyNDE0MTQyN1owgZUxCzAJBgNVBAYTAlVTMRAwDgYD\nVQQIDAdHZW9yZ2lhMRAwDgYDVQQHDAdBdGxhbnRhMRMwEQYDVQQKDApDYW5kZXNj\nZW50MQswCQYDVQQLDAJJVDEbMBkGA1UEAwwSaWRwLmNhbmRlc2NlbnQuY29tMSMw\nIQYJKoZIhvcNAQkBFhRhZG1pbkBjYW5kZXNjZW50LmNvbTCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAN+soEjTOAAC2ZSrPekQdZfKa+9i3dsuC5/ZJ0W6\nSV8gcB3Bj3okl5lmaeGFPfiITakr1W1CsI3RMMbT1E0u7zOHziiVZURzFOhWe6hZ\nwzfA3XGESLHtSPJ5Xq+TzzWC3FWbtRpP9IKYp89x0q4kvUgcXnlCDCS3SdshXgtM\nYKaGWqnz9QatsOPRYzXUnR+xjJ1xW3jjK1cXZ54iXmBnLmVmilTZrt8V1rsre9GU\nzkO/Vxhb8LXSK5OGjxm+5qqWnsHKWoNjmai2cybe/Cw2KlnkZ6Wg568is9AaMUKD\nbQxfyzF2HUX3FlC0b5kZAoiafllV7PsWmoPffzYLIZd1KncCAwEAATANBgkqhkiG\n9w0BAQsFAAOCAQEA13V3AypnvXGw5CZ35AhOiXQqFgwyoPOh+QOVcg1g1gcA/GS3\nkjkR8k6W63ygSjXQgO/wqYgGbGM6Y63HLnk9qFtOrjN8blnNlzTthDrlzmSA8gQe\nmvuGQvzD07r1tmZ+geM0qyWdaSF+qDgvSgWDf2jsqt0oOpoaZruRwvrR9rDM894S\nWJU+DUOrZq2AHoX/WEEOzW0Xv+hDvYaSN6MRIhjI9gpLVYePucJO+uUFrVkxBk7V\neDYzQeH3at2IQ1sLnXM/mjgP4andCbAmO2Fu1gdTJrQDPUYR4PfRFgx21hznvbGq\nbQWIuQDwgWcnppYvbA/BzUiXXg8Mg3xg4X9oGQ==\n-----END CERTIFICATE-----
-`.trim(); // KEEP line breaks intact
-  payload = {
-    acsUrl: acsUrlMock,   // <-- ADD THIS LINE
+
+const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
+  const validCertificate = fs.readFileSync(certPath, 'utf8');
+ payload = {
+    acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
     publicCertificate: validCertificate,
     attributes: {
       firstName: 'John',
@@ -85,6 +89,28 @@ describe('SAML backend testcases (e2e)', () => {
     console.log('Response from SAML login API:', res.body);
     expect(res.status).toBe(201);
   },10000);
+
+   it('validate success true message on saml/login API', async () => {
+    console.log('validate POST client api should have client details in response');
+    const requestBody = {
+    acsUrl: "http://localhost:7000/api/saml-validator/acs",
+    publicCertificate:  validCertificate,
+    attributes: {
+      firstName: "John",
+      lastName: "Doe",
+      memberId: "AS83747TB",
+      email: "john.doe@example.com"
+    }
+  };
+  const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
+    .send(requestBody).catch((err: any) => {
+      console.error('Supertest Error:', err.res?.text || err);
+      throw err;
+    });
+    console.log('Post SAML login Response Body:', res.body);
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('success', true);
+  }, 40000);
 
     function extractAttributeErrors(errors: any[]) {
     const attrs = errors.find(e => e.property === 'attributes');
