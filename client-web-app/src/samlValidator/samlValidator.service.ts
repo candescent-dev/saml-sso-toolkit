@@ -58,8 +58,6 @@ export class SamlValidatorService {
       console.warn('Failed to parse SAMLResponse XML');
       return this.failure('Failed to parse SAMLResponse XML', this.initChecks(), 400);
     }
-    console.log(`Parsed SAML Document: ${new XMLSerializer().serializeToString(doc)}`);
-    console.log(`Root element: ${doc.documentElement.nodeName}`);
     const responseElement = doc.documentElement;
     const validationChecks = this.initChecks();
     if (responseElement.localName !== 'Response') {
@@ -100,7 +98,7 @@ export class SamlValidatorService {
     validationChecks.signatureValid = true;
     const assertionDoc = new DOMParser().parseFromString(decryptedAssertionXml, 'text/xml');
     const assertionElement = assertionDoc.documentElement;
-    if (!assertionElement || assertionElement.localName !== 'Assertion') {
+    if (!assertionElement || assertionElement.localName !== 'Response') {
       return this.failure('Decrypted XML is not a valid <saml:Assertion>', validationChecks, 400);
     }
     const assertionData = this.extractAssertionData(assertionElement);
@@ -191,6 +189,7 @@ export class SamlValidatorService {
       if (!signatureNode) return 'Signature element not found in Assertion';
       const sig = new SignedXml() as any;
       sig.keyInfoProvider = { getKeyInfo: () => null, getKey: () => this.publicKey };
+      sig.publicCert = this.publicKey;
       sig.loadSignature(signatureNode);
       if (!sig.checkSignature(assertionXml))
         return `Signature verification failed: ${sig.validationErrors?.join(', ')}`;
