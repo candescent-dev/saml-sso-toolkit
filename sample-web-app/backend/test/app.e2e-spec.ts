@@ -21,8 +21,9 @@ describe('SAML backend testcases (e2e)', () => {
   const samlLoginApi = '/saml/login';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
 
-const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
+  const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
   const validCertificate = fs.readFileSync(certPath, 'utf8');
+
  payload = {
     acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
     publicCertificate: validCertificate,
@@ -110,7 +111,27 @@ const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt'
     expect(res.body).toHaveProperty('success', true);
     expect(res.body).toHaveProperty('publicCertificate',validCertificate);
     expect(res.body).toHaveProperty('xml');
-    console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
+    const xml = res.body.xml;
+
+  // -----------------------------
+  // XML ASSERTIONS
+  // -----------------------------
+  expect(xml).toContain('<samlp:Response');
+  expect(xml).toContain('<saml:Assertion');
+  expect(xml).toContain('<saml:Issuer>Candescent</saml:Issuer>');
+  expect(xml).toContain('<saml:NameID>AS83747TB</saml:NameID>');
+  expect(xml).toContain('<saml:Attribute Name="firstName">');
+  expect(xml).toContain('<saml:AttributeValue>John</saml:AttributeValue>');
+  expect(xml).toContain('<saml:Attribute Name="lastName">');
+  expect(xml).toContain('<saml:AttributeValue>Doe</saml:AttributeValue>');
+  expect(xml).toContain('<saml:Attribute Name="email">');
+  expect(xml).toContain('<saml:AttributeValue>john.doe@example.com</saml:AttributeValue>');
+  expect(xml).toContain('<saml:Attribute Name="memberId">');
+  expect(xml).toContain('<saml:AttributeValue>AS83747TB</saml:AttributeValue>');
+  expect(xml).toContain('IssueInstant=');
+  expect(xml).toContain('NotOnOrAfter=');
+
+  console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
   }, 4000);
 
     function extractAttributeErrors(errors: any[]) {
