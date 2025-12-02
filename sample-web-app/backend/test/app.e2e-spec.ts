@@ -21,16 +21,7 @@ describe('SAML backend testcases (e2e)', () => {
   const samlLoginApi = '/saml/login';
 
   const validCertificate = `
------BEGIN CERTIFICATE-----
-MIIBsjCCAVmgAwIBAgIJAO5O0vD5x1NnMAoGCCqGSM49BAMCMBUxEzARBgNVBAMM
-Cm15dGVzdENlcnQwHhcNMjUxMTI1MTQ3NjAwWhcNMjYxMTI0MTQ3NjAwWjAVMRMw
-EQYDVQQDDApteXRlc3RDZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE6FqB
-aN0O5iR3v95vRvLBMZxOkNLo9r5zSqt5O8Xo2nJ9kYgEuk9o+VwD0MxNLXkOdWIn
-d9M1sG9u4qpm9rkY4KNTMFEwHQYDVR0OBBYEFJCpW+7N7NHt5R+GECkW8D0u4eFR
-MB8GA1UdIwQYMBaAFJCpW+7N7NHt5R+GECkW8D0u4eFRMA8GA1UdEwEB/wQFMAMB
-Af8wCgYIKoZIzj0EAwIDSAAwRQIhAJLZ9g45g4+cLbS7P8he5O2kRfr1X8/j7Q5f
-cqK0b6WoAiBqV5M5yhH4dD2T0HfG2Z7uY0u7D92tRn5U2R2pILUfrg==
------END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----\nMIIDqDCCApACCQDxEV5XnYNRzzANBgkqhkiG9w0BAQsFADCBlTELMAkGA1UEBhMC\nVVMxEDAOBgNVBAgMB0dlb3JnaWExEDAOBgNVBAcMB0F0bGFudGExEzARBgNVBAoM\nCkNhbmRlc2NlbnQxCzAJBgNVBAsMAklUMRswGQYDVQQDDBJpZHAuY2FuZGVzY2Vu\ndC5jb20xIzAhBgkqhkiG9w0BCQEWFGFkbWluQGNhbmRlc2NlbnQuY29tMB4XDTI1\nMTEyNTE0MTQyN1oXDTMwMTEyNDE0MTQyN1owgZUxCzAJBgNVBAYTAlVTMRAwDgYD\nVQQIDAdHZW9yZ2lhMRAwDgYDVQQHDAdBdGxhbnRhMRMwEQYDVQQKDApDYW5kZXNj\nZW50MQswCQYDVQQLDAJJVDEbMBkGA1UEAwwSaWRwLmNhbmRlc2NlbnQuY29tMSMw\nIQYJKoZIhvcNAQkBFhRhZG1pbkBjYW5kZXNjZW50LmNvbTCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAN+soEjTOAAC2ZSrPekQdZfKa+9i3dsuC5/ZJ0W6\nSV8gcB3Bj3okl5lmaeGFPfiITakr1W1CsI3RMMbT1E0u7zOHziiVZURzFOhWe6hZ\nwzfA3XGESLHtSPJ5Xq+TzzWC3FWbtRpP9IKYp89x0q4kvUgcXnlCDCS3SdshXgtM\nYKaGWqnz9QatsOPRYzXUnR+xjJ1xW3jjK1cXZ54iXmBnLmVmilTZrt8V1rsre9GU\nzkO/Vxhb8LXSK5OGjxm+5qqWnsHKWoNjmai2cybe/Cw2KlnkZ6Wg568is9AaMUKD\nbQxfyzF2HUX3FlC0b5kZAoiafllV7PsWmoPffzYLIZd1KncCAwEAATANBgkqhkiG\n9w0BAQsFAAOCAQEA13V3AypnvXGw5CZ35AhOiXQqFgwyoPOh+QOVcg1g1gcA/GS3\nkjkR8k6W63ygSjXQgO/wqYgGbGM6Y63HLnk9qFtOrjN8blnNlzTthDrlzmSA8gQe\nmvuGQvzD07r1tmZ+geM0qyWdaSF+qDgvSgWDf2jsqt0oOpoaZruRwvrR9rDM894S\nWJU+DUOrZq2AHoX/WEEOzW0Xv+hDvYaSN6MRIhjI9gpLVYePucJO+uUFrVkxBk7V\neDYzQeH3at2IQ1sLnXM/mjgP4andCbAmO2Fu1gdTJrQDPUYR4PfRFgx21hznvbGq\nbQWIuQDwgWcnppYvbA/BzUiXXg8Mg3xg4X9oGQ==\n-----END CERTIFICATE-----
 `.trim(); // KEEP line breaks intact
   payload = {
     acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
@@ -245,31 +236,7 @@ cqK0b6WoAiBqV5M5yhH4dD2T0HfG2Z7uY0u7D92tRn5U2R2pILUfrg==
       ]),
     );
   });
-  // it('should fail when publicCertificate is invalid', async () => {
-  //   // invalid certificate, correct DTO types
-  //   const payload = {
-  //     acsUrl: 'https://vendor.example.com/saml/acs',
-  //     publicCertificate: "abcdef ", // invalid cert but still string
-  //     attributes: {
-  //       firstName: 'John',
-  //       lastName: 'Doe',
-  //       memberId: 'AS83747TB',
-  //       email: 'john.doe@example.com',
-  //     },
-  //   };
-
-  //   const dto = plainToInstance(SamlRequestDto, payload);
-  //   const errors = await validate(dto);
-  //   const messages = errors
-  //     .flatMap(e => Object.values(e.constraints ?? {}));
-
-  //   expect(messages).toEqual(
-  //     expect.stringContaining(
-  //       'Certificate parsing failed: error:0680009B:asn1 encoding routines::too long'
-  //     ),
-
-  //   );
-  // });
+  
 
   it('should fail when all attributes are missing', async () => {
     const dto = plainToInstance(SamlRequestDto, {
