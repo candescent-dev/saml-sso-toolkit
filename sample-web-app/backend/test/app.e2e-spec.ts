@@ -90,7 +90,7 @@ const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt'
   },10000);
 
    it('validate success true message on saml/login API', async () => {
-    console.log('validate POST client api should have client details in response');
+    console.log('validate success true message on saml/login API');
     const requestBody = {
     acsUrl: "http://localhost:7000/api/saml-validator/acs",
     publicCertificate:  validCertificate,
