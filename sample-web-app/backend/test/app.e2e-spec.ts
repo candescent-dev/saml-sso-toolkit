@@ -106,10 +106,12 @@ const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt'
       console.error('Supertest Error:', err.res?.text || err);
       throw err;
     });
-    console.log('Post SAML login Response Body:', res.body);
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('success', true);
-  }, 40000);
+    expect(res.body).toHaveProperty('publicCertificate',validCertificate);
+    expect(res.body).toHaveProperty('xml');
+    console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
+  }, 4000);
 
     function extractAttributeErrors(errors: any[]) {
     const attrs = errors.find(e => e.property === 'attributes');
