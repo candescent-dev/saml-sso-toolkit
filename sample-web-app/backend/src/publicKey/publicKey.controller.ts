@@ -1,13 +1,18 @@
-import { Controller, Get, Res, HttpStatus } from '@nestjs/common';
 import type { Response } from 'express';
+import { Controller, Get, Res } from '@nestjs/common';
 import { PublicKeyService } from './publicKey.service';
 
 @Controller('public-key')
 export class PublicKeyController {
   constructor(private readonly publicKeyService: PublicKeyService) {}
 
+  /**
+   * Endpoint to download the public.pem file
+   * @param res Express Response object
+   * @returns The public.pem file as a downloadable attachment or an error JSON
+   */
   @Get()
-  async downloadPublicKey(@Res() res: Response): Promise<Response> {
+  downloadPublicKey(@Res() res: Response): Response {
     try {
       const fileBuffer = this.publicKeyService.getPublicKey();
       res.set({
@@ -17,7 +22,8 @@ export class PublicKeyController {
       });
       return res.send(fileBuffer);
     } catch (error: any) {
-      return res.json({
+      const status = error?.status || 500;
+      return res.status(status).json({
         message: error?.message || 'Unknown error occurred',
       });
     }

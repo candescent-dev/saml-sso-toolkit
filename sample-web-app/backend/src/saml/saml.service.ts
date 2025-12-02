@@ -62,12 +62,13 @@ export class SamlService {
     console.log('finalSamlResponse:', finalSamlResponse);
     // STEP 5: Base64-encode SAML Response
     const base64SamlResponse = Buffer.from(finalSamlResponse, 'utf-8').toString('base64');
+    console.log('base64SamlResponse:', base64SamlResponse);
     // Step 6: Send SAMLResponse to ACS endpoint
-    const response: ACSServerResponse<ACSServerData> = await this.sendSamlResponseToAcs(
-      samlRequestDto.acsUrl,
-      base64SamlResponse,
-    );
-    console.log('ACSServerResponse:', response);
+    // const response: ACSServerResponse<ACSServerData> = await this.sendSamlResponseToAcs(
+    //   samlRequestDto.acsUrl,
+    //   base64SamlResponse,
+    // );
+    // console.log('ACSServerResponse:', response);
     return {
       success: true,
       acsUrl: samlRequestDto.acsUrl,
