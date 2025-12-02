@@ -121,7 +121,13 @@ const HomePage: FC = () => {
     if (initiateSamlLogin.fulfilled.match(resultAction)) {
       navigate('/success');
     } else if (initiateSamlLogin.rejected.match(resultAction)) {
-      navigate('/error');
+      const errorPayload = resultAction.payload || { errorReason: 'Unknown error occurred' };
+      navigate('/error', {
+        state: {
+          errorCode: errorPayload.errorCode || '',
+          errorReason: errorPayload.errorReason || '',
+        },
+      });
     }
     // Reset fields
     setACSUrl('');

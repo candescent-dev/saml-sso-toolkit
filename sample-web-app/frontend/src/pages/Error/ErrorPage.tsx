@@ -15,13 +15,11 @@ const ErrorPage: FC = () => {
 
   // Get data from Redux store (previously entered ACS URL and certificate)
   const homeState = useAppSelector((state) => state.home);
-  const { acsUrl, publicCertificate, attributes } = homeState;
+  const { acsUrl, publicCertificate, attributes, error } = homeState;
 
-  // Get error data from location state if available, otherwise use defaults
-  const errorCode = (location.state as any)?.errorCode || 'SIM_INIT_ERROR_5043';
-  const errorReason =
-    (location.state as any)?.errorReason ||
-    'Failed to initialize simulation environment due to resource allocation timeout. The requested compute instance exceeded the maximum initial time limit of 300 seconds.';
+  // Get error data from location state or Redux, otherwise use empty strings
+  const errorCode = (location.state as any)?.errorCode || '';
+  const errorReason = (location.state as any)?.errorReason || error || '';
 
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -47,11 +45,11 @@ const ErrorPage: FC = () => {
         navigate('/success');
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Stay on error page with updated error info
-        const errorMessage = resultAction.payload || 'Simulation failed. Please try again.';
+        const errorPayload = resultAction.payload || { errorReason: 'Simulation failed. Please try again.' };
         navigate('/error', {
           state: {
-            errorCode: 'SIM_ERROR',
-            errorReason: errorMessage,
+            errorCode: errorPayload.errorCode || '',
+            errorReason: errorPayload.errorReason || '',
           },
         });
       }
@@ -113,7 +111,7 @@ const ErrorPage: FC = () => {
               onClick={handleRetrySimulation}
               disabled={isRetrying || !acsUrl || !publicCertificate}
             >
-              {isRetrying ? 'Retrying...' : 'Retry Simulation'}
+              {isRetrying ? <span className="spinner"></span> : 'Retry Simulation'}
             </button>
           </div>
           {/* Back to Home Page Button */}
