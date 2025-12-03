@@ -2,34 +2,41 @@
 set -euo pipefail
 
 # ---- Setup ----
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
 CONTAINER_NAME="saml-sso-toolkit-container"
 FRONTEND_PORT=${1:-8000}
 
 # ---- Helpers ----
-log() {
-  echo -e "\033[1;34m[INFO]\033[0m $*"
-}
-warn() {
-  echo -e "\033[1;33m[WARN]\033[0m $*"
-}
-error_exit() {
-  echo -e "\033[1;31m[ERROR]\033[0m $*" >&2
-  exit 1
-}
+log() { echo -e "\033[1;34m[INFO]\033[0m $*"; }
+warn() { echo -e "\033[1;33m[WARN]\033[0m $*"; }
+error_exit() { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; exit 1; }
 
-# ---- Check if image exists ----
-if ! docker images | grep -q "$IMAGE_NAME.*$TAG"; then
-  error_exit "Docker image $IMAGE_NAME:$TAG not found. Please run ./scripts/init.sh first."
-fi
+
+# ---- Check if image exists with retry ----
+MAX_RETRIES=5
+RETRY_INTERVAL=2
+retry_count=0
+
+while ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^$IMAGE_NAME:$TAG$"; do
+  if [ $retry_count -ge $MAX_RETRIES ]; then
+    error_exit "Docker image $IMAGE_NAME:$TAG not found after retries. Please run ./scripts/shell/init.sh first."
+  fi
+  log "Image $IMAGE_NAME:$TAG not found. Retrying in $RETRY_INTERVAL seconds..."
+  sleep $RETRY_INTERVAL
+  retry_count=$((retry_count + 1))
+done
 
 # ---- Stop and remove existing container if it exists ----
-if docker ps -a | grep -q "$CONTAINER_NAME"; then
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
   log "Stopping and removing existing container: $CONTAINER_NAME"
-  docker stop "$CONTAINER_NAME" > /dev/null 2>&1 || true
-  docker rm "$CONTAINER_NAME" > /dev/null 2>&1 || true
+  docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || error_exit "Failed to remove container"
+
+  # Ensure container is fully removed
+  while docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; do
+    log "Waiting for container removal..."
+    sleep 1
+  done
 fi
 
 # ---- Extract backend port from config.json inside the image ----
