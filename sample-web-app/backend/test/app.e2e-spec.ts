@@ -12,16 +12,16 @@ import nock from 'nock';
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
   let agent: any;
-  let clientApp: any;
   let payload: any;
 
   const samlLoginApi = '/saml/login';
+  const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
 
   const validCertificate = `
 -----BEGIN CERTIFICATE-----\nMIIDqDCCApACCQDxEV5XnYNRzzANBgkqhkiG9w0BAQsFADCBlTELMAkGA1UEBhMC\nVVMxEDAOBgNVBAgMB0dlb3JnaWExEDAOBgNVBAcMB0F0bGFudGExEzARBgNVBAoM\nCkNhbmRlc2NlbnQxCzAJBgNVBAsMAklUMRswGQYDVQQDDBJpZHAuY2FuZGVzY2Vu\ndC5jb20xIzAhBgkqhkiG9w0BCQEWFGFkbWluQGNhbmRlc2NlbnQuY29tMB4XDTI1\nMTEyNTE0MTQyN1oXDTMwMTEyNDE0MTQyN1owgZUxCzAJBgNVBAYTAlVTMRAwDgYD\nVQQIDAdHZW9yZ2lhMRAwDgYDVQQHDAdBdGxhbnRhMRMwEQYDVQQKDApDYW5kZXNj\nZW50MQswCQYDVQQLDAJJVDEbMBkGA1UEAwwSaWRwLmNhbmRlc2NlbnQuY29tMSMw\nIQYJKoZIhvcNAQkBFhRhZG1pbkBjYW5kZXNjZW50LmNvbTCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAN+soEjTOAAC2ZSrPekQdZfKa+9i3dsuC5/ZJ0W6\nSV8gcB3Bj3okl5lmaeGFPfiITakr1W1CsI3RMMbT1E0u7zOHziiVZURzFOhWe6hZ\nwzfA3XGESLHtSPJ5Xq+TzzWC3FWbtRpP9IKYp89x0q4kvUgcXnlCDCS3SdshXgtM\nYKaGWqnz9QatsOPRYzXUnR+xjJ1xW3jjK1cXZ54iXmBnLmVmilTZrt8V1rsre9GU\nzkO/Vxhb8LXSK5OGjxm+5qqWnsHKWoNjmai2cybe/Cw2KlnkZ6Wg568is9AaMUKD\nbQxfyzF2HUX3FlC0b5kZAoiafllV7PsWmoPffzYLIZd1KncCAwEAATANBgkqhkiG\n9w0BAQsFAAOCAQEA13V3AypnvXGw5CZ35AhOiXQqFgwyoPOh+QOVcg1g1gcA/GS3\nkjkR8k6W63ygSjXQgO/wqYgGbGM6Y63HLnk9qFtOrjN8blnNlzTthDrlzmSA8gQe\nmvuGQvzD07r1tmZ+geM0qyWdaSF+qDgvSgWDf2jsqt0oOpoaZruRwvrR9rDM894S\nWJU+DUOrZq2AHoX/WEEOzW0Xv+hDvYaSN6MRIhjI9gpLVYePucJO+uUFrVkxBk7V\neDYzQeH3at2IQ1sLnXM/mjgP4andCbAmO2Fu1gdTJrQDPUYR4PfRFgx21hznvbGq\nbQWIuQDwgWcnppYvbA/BzUiXXg8Mg3xg4X9oGQ==\n-----END CERTIFICATE-----
 `.trim(); // KEEP line breaks intact
   payload = {
-    acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+    acsUrl: acsUrlMock,   // <-- ADD THIS LINE
     publicCertificate: validCertificate,
     attributes: {
       firstName: 'John',
@@ -47,36 +47,22 @@ describe('SAML backend testcases (e2e)', () => {
       console.log('** BEFORE init **');
       await app.init();
       agent = request.agent(app.getHttpServer());
-      jest.useFakeTimers();
       console.log('app initialized successfully');
-
+    } catch (e) {
+      console.error('Beforeall failed:', e);
+      throw e;
+    }
       console.log('Mock client ACS endpoint');
       nock('http://localhost:7000')
         .post('/api/saml-validator/acs').query(true) // ignore query details
         .reply(200, { success: true });
       console.log('Mock client ACS endpoint successful');
-
-    } catch (e) {
-      console.error('Beforeall failed:', e);
-      throw e;
-    }
   });
 
   afterAll(async () => {
-    // await app.close();
+     //await app.close();
     //await clientApp.close();
   });
-  function extractAttributeErrors(errors: any[]) {
-    const attrs = errors.find(e => e.property === 'attributes');
-    if (!attrs || !attrs.children) return [];
-
-    return attrs.children.flatMap(child =>
-      Object.values(child.constraints ?? {}).map(msg =>
-        `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`
-      )
-    );
-  }
-
 
   it('check health of backend -> /health (GET)', () => {
     return request(app.getHttpServer())
@@ -90,18 +76,26 @@ describe('SAML backend testcases (e2e)', () => {
       });
   });
 
-
-
-  it('validate POST client api should have client details in response', async () => {
-    console.log('validate POST client api should have client details in response');
+  it('validate POST saml/login details in response', async () => {
+    console.log('validate POST saml/login details in response');
     const res = await agent.post(samlLoginApi).send(payload).catch((err: any) => {
       console.error('Supertest Error:', err.res?.text || err);
       throw err;
     });
     console.log('Response from SAML login API:', res.body);
-  });
+    expect(res.status).toBe(201);
+  },10000);
 
+    function extractAttributeErrors(errors: any[]) {
+    const attrs = errors.find(e => e.property === 'attributes');
+    if (!attrs || !attrs.children) return [];
 
+    return attrs.children.flatMap(child =>
+      Object.values(child.constraints ?? {}).map(msg =>
+        `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`
+      )
+    );
+  }
 
   it('should fail when no payload is sent', async () => {
     const payload = {};
@@ -123,7 +117,6 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when acsUrl is missing', async () => {
     const payload = {
-      //acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -195,7 +188,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when publicCertificate is missing', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',
+      acsUrl: acsUrlMock,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -218,7 +211,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when publicCertificate is empty', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',
+      acsUrl: acsUrlMock,
       publicCertificate: "",
       attributes: {
         firstName: 'John',
@@ -269,7 +262,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when email is missing', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -289,7 +282,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when email is invalid', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -310,7 +303,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when firstName is missing', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         lastName: 'Doe',
@@ -330,7 +323,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when lastName is missing', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -350,7 +343,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when memberId is missing', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -374,7 +367,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when firstname is empty', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: '',
@@ -394,7 +387,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when lastname is empty', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -415,7 +408,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('should fail when email is empty', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
@@ -435,7 +428,7 @@ describe('SAML backend testcases (e2e)', () => {
   });
   it('should fail when memberId is empty', async () => {
     const payload = {
-      acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
       publicCertificate: validCertificate,
       attributes: {
         firstName: 'John',
