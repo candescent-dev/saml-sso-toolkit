@@ -1,33 +1,42 @@
+
 #!/usr/bin/env bash
 set -euo pipefail
 
 # ---- Setup ----
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONTAINER_NAME="saml-sso-toolkit-container"
 FRONTEND_PORT=${1:-8000}
 MAX_RETRIES=5
 RETRY_INTERVAL=2
-
 IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
 
-# ---- Check if image exists ----
-if ! docker images | grep -q "$IMAGE_NAME.*$TAG"; then
-  error_exit "Docker image $IMAGE_NAME:$TAG not found. Please run ./scripts/init.sh first."
-fi
-
 # ---- Helpers ----
-log()    { echo -e "\033[1;34m[INFO]\033[0m $*"; }
-warn()   { echo -e "\033[1;33m[WARN]\033[0m $*"; }
-error_exit() { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; exit 1; }
-success(){ echo -e "\033[1;32m[SUCCESS]\033[0m $*"; }
+log()    { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
+warn()   { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
+error_exit() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
+success(){ printf "\033[1;32m[SUCCESS]\033[0m %s\n" "$*"; }
 
+# ---- Reliable Image Check with Retry ----
+retry_count=0
+while ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^$IMAGE_NAME:$TAG$"; do
+  if [ $retry_count -ge $MAX_RETRIES ]; then
+    error_exit "Docker image $IMAGE_NAME:$TAG not found after retries. Please build it first."
+  fi
+  log "Image $IMAGE_NAME:$TAG not found. Retrying in $RETRY_INTERVAL seconds..."
+  sleep $RETRY_INTERVAL
+  retry_count=$((retry_count + 1))
+done
+
+# ---- Check Container Status ----
 check_container_status() {
-  if ! docker ps | grep -q "$CONTAINER_NAME"; then
-    error_exit "Container '$CONTAINER_NAME' is not running. Please run ./scripts/run-web-app.sh first."
+  if ! docker ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+    error_exit "Container '$CONTAINER_NAME' is not running. Please run ./scripts/shell/run-web-app.sh first."
   fi
   log "Container '$CONTAINER_NAME' is running"
 }
 
+# ---- Health Check with Retry ----
 check_health() {
   local url=$1
   local label=$2
@@ -46,6 +55,7 @@ check_health() {
   error_exit "$label failed to respond after $((MAX_RETRIES * RETRY_INTERVAL)) seconds"
 }
 
+# ---- Check Container Logs ----
 check_container_logs() {
   log "Checking container logs for errors..."
   local error_count
@@ -58,17 +68,15 @@ check_container_logs() {
   fi
 }
 
-
+# ---- Get Backend Port ----
 get_backend_port() {
   log "Reading backend port from config.json inside the image..." >&2  
-  
   local port
   port=$(docker run --rm "$IMAGE_NAME:$TAG" sh -c 'jq -r ".backendPort" /app/config.json')
 
   if [[ -z "$port" || "$port" == "null" ]]; then
     error_exit "Failed to read backendPort from config.json. Please check the file inside the image."
   fi
-
   echo "$port"
 }
 
@@ -93,9 +101,3 @@ log ""
 success "All self-tests passed! Application is running correctly."
 log "Test Summary:"
 log " Container is running"
-log " Frontend is responding"
-log " Backend is responding"
-log " No critical errors in logs"
-log ""
-log " Frontend: $FRONTEND_URL"
-log " Backend: $BACKEND_URL"
