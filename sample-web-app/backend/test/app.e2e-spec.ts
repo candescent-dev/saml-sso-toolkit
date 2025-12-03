@@ -7,15 +7,12 @@ import { startClientTestServer } from "../src/test-bootstrap";
 import { plainToInstance } from 'class-transformer';
 import { SamlRequestDto } from '../src/saml/dto/samlRequest.dto';
 import { validate } from 'class-validator';
-
-
-console.log(startClientTestServer);
+import nock from 'nock';
 
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
   let agent: any;
   let clientApp: any;
-  let sampleApp: any;
   let payload: any;
 
   const samlLoginApi = '/saml/login';
@@ -36,7 +33,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   beforeAll(async () => {
     try {
-      clientApp = await startClientTestServer();   // starts on port 7000
+      //clientApp = await startClientTestServer();   // starts on port 7000
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [AppModule],
       })
@@ -52,6 +49,13 @@ describe('SAML backend testcases (e2e)', () => {
       agent = request.agent(app.getHttpServer());
       jest.useFakeTimers();
       console.log('app initialized successfully');
+
+      console.log('Mock client ACS endpoint');
+      nock('http://localhost:7000')
+        .post('/api/saml-validator/acs').query(true) // ignore query details
+        .reply(200, { success: true });
+      console.log('Mock client ACS endpoint successful');
+
     } catch (e) {
       console.error('Beforeall failed:', e);
       throw e;
@@ -60,7 +64,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   afterAll(async () => {
     // await app.close();
-    await clientApp.close();
+    //await clientApp.close();
   });
   function extractAttributeErrors(errors: any[]) {
     const attrs = errors.find(e => e.property === 'attributes');
@@ -236,7 +240,7 @@ describe('SAML backend testcases (e2e)', () => {
       ]),
     );
   });
-  
+
 
   it('should fail when all attributes are missing', async () => {
     const dto = plainToInstance(SamlRequestDto, {
