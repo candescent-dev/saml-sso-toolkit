@@ -25,7 +25,7 @@ describe('SAML backend testcases (e2e)', () => {
   const validCertificate = fs.readFileSync(certPath, 'utf8');
 
  payload = {
-    acsUrl: 'https://vendor.example.com/saml/acs',   // <-- ADD THIS LINE
+    acsUrl: acsUrlMock,   // <-- ADD THIS LINE
     publicCertificate: validCertificate,
     attributes: {
       firstName: 'John',
@@ -80,20 +80,10 @@ describe('SAML backend testcases (e2e)', () => {
       });
   });
 
-  it('validate POST saml/login details in response', async () => {
-    console.log('validate POST saml/login details in response');
-    const res = await agent.post(samlLoginApi).send(payload).catch((err: any) => {
-      console.error('Supertest Error:', err.res?.text || err);
-      throw err;
-    });
-    console.log('Response from SAML login API:', res.body);
-    expect(res.status).toBe(201);
-  },10000);
-
-   it('validate success true message on saml/login API', async () => {
-    console.log('validate success true message on saml/login API');
+   it('validate success true message and attributes on saml/login API response', async () => {
+    console.log('validate success true message and attributes on saml/login API response');
     const requestBody = {
-    acsUrl: "http://localhost:7000/api/saml-validator/acs",
+    acsUrl: acsUrlMock,
     publicCertificate:  validCertificate,
     attributes: {
       firstName: "John",
