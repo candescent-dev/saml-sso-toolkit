@@ -102,6 +102,15 @@ describe('SAML backend testcases (e2e)', () => {
       email: "john.doe@example.com"
     }
   }
+
+  const fname = requestBody.attributes.firstName;
+  const lname = requestBody.attributes.lastName;
+  const memId = requestBody.attributes.memberId;
+  const reqCertificate = requestBody.publicCertificate;
+  const mailID = requestBody.attributes.email;
+  const reqAcsUrl = requestBody.acsUrl;
+
+
   const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
     .send(requestBody).catch((err: any) => {
       console.error('Supertest Error:', err.res?.text || err);
@@ -109,8 +118,10 @@ describe('SAML backend testcases (e2e)', () => {
     });
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('success', true);
-    expect(res.body).toHaveProperty('publicCertificate',validCertificate);
+    expect(res.body).toHaveProperty('publicCertificate',reqCertificate);
+    expect(res.body).toHaveProperty('acsUrl',reqAcsUrl);
     expect(res.body).toHaveProperty('xml');
+    
     const xml = res.body.xml;
 
   // -----------------------------
@@ -119,15 +130,15 @@ describe('SAML backend testcases (e2e)', () => {
   expect(xml).toContain('<samlp:Response');
   expect(xml).toContain('<saml:Assertion');
   expect(xml).toContain('<saml:Issuer>Candescent</saml:Issuer>');
-  expect(xml).toContain('<saml:NameID>AS83747TB</saml:NameID>');
+  expect(xml).toContain('<saml:NameID>'+memId+'</saml:NameID>');
   expect(xml).toContain('<saml:Attribute Name="firstName">');
-  expect(xml).toContain('<saml:AttributeValue>John</saml:AttributeValue>');
+  expect(xml).toContain('<saml:AttributeValue>'+fname+'</saml:AttributeValue>');
   expect(xml).toContain('<saml:Attribute Name="lastName">');
-  expect(xml).toContain('<saml:AttributeValue>Doe</saml:AttributeValue>');
+  expect(xml).toContain('<saml:AttributeValue>'+lname+'</saml:AttributeValue>');
   expect(xml).toContain('<saml:Attribute Name="email">');
-  expect(xml).toContain('<saml:AttributeValue>john.doe@example.com</saml:AttributeValue>');
+  expect(xml).toContain('<saml:AttributeValue>'+mailID+'</saml:AttributeValue>');
   expect(xml).toContain('<saml:Attribute Name="memberId">');
-  expect(xml).toContain('<saml:AttributeValue>AS83747TB</saml:AttributeValue>');
+  expect(xml).toContain('<saml:AttributeValue>'+memId+'</saml:AttributeValue>');
   expect(xml).toContain('IssueInstant=');
   expect(xml).toContain('NotOnOrAfter=');
 
