@@ -1,4 +1,21 @@
-{
+{ "reporters": [
+    "default",
+    [
+      "jest-junit",
+      {
+        "outputDirectory": "test-results/junit",
+        "outputName": "jest-e2e.xml"
+      }
+    ],
+    [
+      "jest-html-reporter",
+      {
+        "outputPath": "test-results/html/e2e-report.html",
+        "includeFailureMsg": true,
+        "includeSuiteFailure": true
+      }
+    ]
+  ],
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
@@ -15,6 +32,5 @@
         "rootDir": "../../"
       }
     }
-  },
-  "transformIgnorePatterns": ["/node_modules/(?!xmlbuilder2|@oozcitak)/"]
+  }
 }
