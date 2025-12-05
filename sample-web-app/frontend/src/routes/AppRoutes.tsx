@@ -6,6 +6,7 @@ import Header from '../components/Header/Header';
 const HomePage = lazy(() => import('../pages/Home/HomePage'));
 const SuccessPage = lazy(() => import('../pages/Success/SuccessPage'));
 const ErrorPage = lazy(() => import('../pages/Error/ErrorPage'));
+const PageNotFound = lazy(() => import('../pages/PageNotFound/PageNotFoundPage')); //  404 Page Not Found
 
 // Route paths (type-safe)
 const ROUTES = {
@@ -27,6 +28,8 @@ const AppRoutes: FC = () => (
         <Route path={ROUTES.HOME} element={<HomePage />} />
         <Route path={ROUTES.SUCCESS} element={<SuccessPage />} />
         <Route path={ROUTES.ERROR} element={<ErrorPage />} />
+        {/* 404 route */}
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Suspense>
   </Router>
