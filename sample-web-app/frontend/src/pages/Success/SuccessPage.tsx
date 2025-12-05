@@ -14,10 +14,10 @@ const SuccessPage: FC = () => {
   const dispatch = useAppDispatch();
 
   // Fetch data from Redux store
-  const homeState = useAppSelector((state) => state.home);
-  const { acsUrl, publicCertificate, attributes, xml } = homeState;
+  const { initiateSamlLoginLoading, acsUrl, publicCertificate, attributes, xml } = useAppSelector(
+    (state) => state.home
+  );
 
-  const [isRunning, setIsRunning] = useState(false);
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
   const downloadTimerRef = useRef<number | null>(null);
 
@@ -37,7 +37,6 @@ const SuccessPage: FC = () => {
       navigate('/');
       return;
     }
-    setIsRunning(true);
     // Build payload from Redux store data
     const payload: HomeInputState = {
       acsUrl,
@@ -52,7 +51,9 @@ const SuccessPage: FC = () => {
         navigate('/success');
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Navigate to error page with error info
-        const errorPayload = resultAction.payload || { errorReason: 'Simulation failed. Please try again.' };
+        const errorPayload = resultAction.payload || {
+          errorReason: 'Simulation failed. Please try again.',
+        };
         navigate('/error', {
           state: {
             errorCode: errorPayload.errorCode || '',
@@ -62,18 +63,15 @@ const SuccessPage: FC = () => {
       }
     } catch (error) {
       console.error('Error running simulation:', error);
-    } finally {
-      setIsRunning(false);
     }
   };
 
-  const handleMetaData = () => {
+  const handleDownloadXMLAssertion = () => {
     if (!xml) {
       console.error('XML not available for download');
       setDownloadMessage('XML not available for download');
       return;
     }
-
     try {
       // Create a blob from the XML string
       const blob = new Blob([xml], { type: 'application/xml' });
@@ -85,7 +83,6 @@ const SuccessPage: FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
       // Show toast after successful download
       if (downloadTimerRef.current) clearTimeout(downloadTimerRef.current);
       downloadTimerRef.current = window.setTimeout(() => {
@@ -102,7 +99,7 @@ const SuccessPage: FC = () => {
       <div className="success-container">
         <div className="success-header">
           <div className="success-icon">
-            <img src={greenTickIcon} alt="Success" className="success-icon-img" />
+            <img src={greenTickIcon} className="success-icon-img" alt="Success" loading="lazy" />
           </div>
           <div className="success-text-wrapper">
             <h1 className="success-title">Simulation Successful</h1>
@@ -115,7 +112,7 @@ const SuccessPage: FC = () => {
         <div className="success-content">
           <div className="form-group">
             <label htmlFor="acs-url" className="form-label acs-url-label">
-              <img src={linkIcon} alt="Link" className="label-icon" />
+              <img src={linkIcon} className="label-icon" alt="Link" loading="lazy" />
               Test ACS URL
             </label>
             <input
@@ -130,7 +127,7 @@ const SuccessPage: FC = () => {
           {/* Encryption Certificates */}
           <div className="form-group">
             <label htmlFor="certificate" className="form-label acs-url-label">
-              <img src={shieldIcon} alt="Shield" className="label-icon" />
+              <img src={shieldIcon} className="label-icon" alt="Shield" loading="lazy" />
               Test Encryption Certificate (Public)
             </label>
             <div className="certificate-wrapper">
@@ -148,17 +145,25 @@ const SuccessPage: FC = () => {
             </div>
           </div>
           {/* Run Another Simulation Button */}
-          <div className="button-group">
+          <div className="button-row">
             <button
               type="button"
-              className="btn btn-primary"
+              className="submit-btn"
               onClick={handleRunAnotherSimulation}
-              disabled={isRunning || !acsUrl || !publicCertificate}
+              disabled={!acsUrl || !publicCertificate || initiateSamlLoginLoading}
             >
-              {isRunning ? <span className="spinner"></span> : 'Run Another Simulation'}
+              {initiateSamlLoginLoading ? (
+                <>
+                  Running...
+                  <span className="spinner" />
+                </>
+              ) : (
+                'Run Another Simulation'
+              )}
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleMetaData}>
-              <img src={downloadIcon} alt="" className="btn-icon" />
+            {/* Download XML Assertion Button */}
+            <button type="button" className="icon-button" onClick={handleDownloadXMLAssertion}>
+              <img src={downloadIcon} className="download-icon" alt="Download" loading="lazy" />
               XML Assertion
             </button>
           </div>

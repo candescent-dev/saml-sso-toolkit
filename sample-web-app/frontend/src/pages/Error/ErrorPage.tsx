@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import errorIcon from '../../assets/error.svg';
 import codeIcon from '../../assets/code.svg';
@@ -14,14 +14,13 @@ const ErrorPage: FC = () => {
   const dispatch = useAppDispatch();
 
   // Get data from Redux store (previously entered ACS URL and certificate)
-  const homeState = useAppSelector((state) => state.home);
-  const { acsUrl, publicCertificate, attributes, error } = homeState;
+  const { initiateSamlLoginLoading, acsUrl, publicCertificate, attributes, error } = useAppSelector(
+    (state) => state.home
+  );
 
   // Get error data from location state or Redux, otherwise use empty strings
   const errorCode = (location.state as any)?.errorCode || '';
   const errorReason = (location.state as any)?.errorReason || error || '';
-
-  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleRetrySimulation = async () => {
     // Check if we have the required data from Redux
@@ -30,7 +29,6 @@ const ErrorPage: FC = () => {
       navigate('/');
       return;
     }
-    setIsRetrying(true);
     // Build payload from Redux store data
     const payload: HomeInputState = {
       acsUrl,
@@ -45,7 +43,9 @@ const ErrorPage: FC = () => {
         navigate('/success');
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Stay on error page with updated error info
-        const errorPayload = resultAction.payload || { errorReason: 'Simulation failed. Please try again.' };
+        const errorPayload = resultAction.payload || {
+          errorReason: 'Simulation failed. Please try again.',
+        };
         navigate('/error', {
           state: {
             errorCode: errorPayload.errorCode || '',
@@ -55,8 +55,6 @@ const ErrorPage: FC = () => {
       }
     } catch (error) {
       console.error('Error retrying simulation:', error);
-    } finally {
-      setIsRetrying(false);
     }
   };
 
@@ -104,14 +102,21 @@ const ErrorPage: FC = () => {
             />
           </div>
           {/* Retry Simulation Button */}
-          <div className="button-group">
+          <div className="button-row">
             <button
               type="button"
-              className="btn btn-primary"
+              className="submit-btn"
               onClick={handleRetrySimulation}
-              disabled={isRetrying || !acsUrl || !publicCertificate}
+              disabled={!acsUrl || !publicCertificate || initiateSamlLoginLoading}
             >
-              {isRetrying ? <span className="spinner"></span> : 'Retry Simulation'}
+              {initiateSamlLoginLoading ? (
+                <>
+                  Running...
+                  <span className="spinner" />
+                </>
+              ) : (
+                'Retry Simulation'
+              )}
             </button>
           </div>
           {/* Back to Home Page Button */}

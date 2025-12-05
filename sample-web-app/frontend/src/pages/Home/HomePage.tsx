@@ -2,7 +2,11 @@ import React, { FC, useState, useEffect, useRef, ChangeEvent, FormEvent } from '
 import { useNavigate } from 'react-router-dom';
 import downloadIcon from '../../assets/download.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setLoading, setHomeInputState, initiateSamlLogin } from '../../features/home/homeSlice';
+import {
+  setDownloadPublicKeyLoading,
+  setHomeInputState,
+  initiateSamlLogin,
+} from '../../features/home/homeSlice';
 import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
 import { HomeInputState } from '../../features/home/types';
 import { getApi } from '../../services/api';
@@ -16,7 +20,9 @@ interface FieldErrors {
 const HomePage: FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { attributes, loading } = useAppSelector((state) => state.home);
+  const { attributes, initiateSamlLoginLoading, downloadPublicKeyLoading } = useAppSelector(
+    (state) => state.home
+  );
 
   const [acsUrl, setACSUrl] = useState<string>('');
   const [publicCertificate, setPublicCertificate] = useState<string>('');
@@ -62,8 +68,8 @@ const HomePage: FC = () => {
       publicCertificate: !value.trim()
         ? 'Test encryption certificate is required'
         : !validatePublicCertificate(value)
-        ? 'Certificate must include BEGIN/END CERTIFICATE lines'
-        : null,
+          ? 'Certificate must include BEGIN/END CERTIFICATE lines'
+          : null,
     }));
   };
 
@@ -140,7 +146,7 @@ const HomePage: FC = () => {
     try {
       const api = getApi();
       const response = await api.get<Blob>('public-key', { responseType: 'blob' });
-      dispatch(setLoading(true));
+      dispatch(setDownloadPublicKeyLoading(true));
       const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -153,10 +159,10 @@ const HomePage: FC = () => {
       if (downloadTimerRef.current) clearTimeout(downloadTimerRef.current);
       downloadTimerRef.current = window.setTimeout(() => {
         setDownloadMessage('public.pem file downloaded');
-        dispatch(setLoading(false));
+        dispatch(setDownloadPublicKeyLoading(false));
       }, 2000);
     } catch (error: any) {
-      dispatch(setLoading(false));
+      dispatch(setDownloadPublicKeyLoading(false));
       if (error.response && error.response.data instanceof Blob) {
         const text = await error.response.data.text();
         try {
@@ -260,12 +266,20 @@ const HomePage: FC = () => {
             className="submit-btn"
             data-testid="metadata-button"
             onClick={handleSubmit}
-            disabled={!isFormValid() || loading}
+            disabled={!isFormValid() || initiateSamlLoginLoading}
           >
-            {loading ? <span className="spinner" /> : 'Run Simulation'}
+            {initiateSamlLoginLoading ? (
+              <>
+                Running...
+                <span className="spinner" />
+              </>
+            ) : (
+              'Run Simulation'
+            )}
           </button>
+          {/* Download Candescent Public Key Button */}
           <button type="button" className="icon-button" onClick={handleDownloadPublicKey}>
-            {loading ? (
+            {downloadPublicKeyLoading ? (
               <span className="spinner" />
             ) : (
               <>

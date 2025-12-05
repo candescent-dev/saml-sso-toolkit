@@ -27,6 +27,7 @@ export interface HomeInputState {
 
 export interface HomeState extends HomeInputState {
   xml: string | null;
-  loading: boolean;
   error: string | null;
+  initiateSamlLoginLoading: boolean;
+  downloadPublicKeyLoading: boolean;
 }

@@ -174,7 +174,9 @@
   background: var(--color-background);
   color: var(--color-text-placeholder);
   padding: 0 var(--spacing-xs);
-  transition: color var(--transition-base), top var(--transition-base),
+  transition:
+    color var(--transition-base),
+    top var(--transition-base),
     font-size var(--transition-base);
   pointer-events: none;
 }
@@ -277,7 +279,9 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   max-width: none;
-  transition: background-color var(--transition-slow), transform var(--transition-fast);
+  transition:
+    background-color var(--transition-slow),
+    transform var(--transition-fast);
   box-shadow: none;
   text-align: center;
   flex: 1 1 0;
@@ -344,6 +348,7 @@
   }
 }
 
+/* Spinner for loading state */
 .spinner {
   border: 0.125rem solid #f3f3f3;
   border-top: 0.125rem solid #555555;
@@ -353,6 +358,7 @@
   display: inline-block;
   animation: spin 1s linear infinite;
   vertical-align: middle;
+  margin-left: var(--spacing-xl);
 }
 
 @keyframes spin {
@@ -368,7 +374,7 @@
    Responsive Design
    ============================================ */
 
-/* Small Devices (Phones < 600px) */
+/* Small Devices (Phones < 600px / 37.5rem) */
 @media (max-width: 37.5rem) {
   .home-container {
     padding: var(--spacing-md);
@@ -422,7 +428,7 @@
   }
 }
 
-/* Medium Devices (Tablets: 600px–767px) */
+/* Medium Devices (Tablets: 600px–767px / 37.5rem–47.99rem) */
 @media (min-width: 37.5rem) and (max-width: 47.99rem) {
   .inputs {
     gap: var(--spacing-2xl);
@@ -449,7 +455,7 @@
   }
 }
 
-/* Large Devices (Desktops ≥ 768px) */
+/* Large Devices (Desktops ≥ 768px / 48rem) */
 @media (min-width: 48rem) {
   .inputs {
     display: grid;
@@ -478,7 +484,7 @@
   }
 }
 
-/* Extra Large Screens (≥ 1200px) */
+/* Extra Large Screens (≥ 1200px / 75rem) */
 @media (min-width: 75rem) {
   .header-row h1 {
     font-size: var(--font-size-7xl);

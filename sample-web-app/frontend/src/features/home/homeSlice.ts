@@ -15,9 +15,10 @@ const initialState: HomeState = {
     memberId: 'AS83747TB',
     email: 'john.doe@example.com',
   },
-  loading: false,
   xml: null,
   error: null,
+  initiateSamlLoginLoading: false,
+  downloadPublicKeyLoading: false,
 };
 
 // -------------------- ASYNC THUNKS --------------------
@@ -70,8 +71,8 @@ const homeSlice = createSlice({
   initialState,
   reducers: {
     /** Set loading state */
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload;
+    setDownloadPublicKeyLoading: (state, action: PayloadAction<boolean>) => {
+      state.downloadPublicKeyLoading = action.payload;
     },
     setHomeInputState(state, action: PayloadAction<HomeInputState>) {
       state.acsUrl = action.payload.acsUrl;
@@ -87,26 +88,27 @@ const homeSlice = createSlice({
         memberId: 'AS83747TB',
         email: 'john.doe@example.com',
       };
-      state.loading = false;
       state.xml = null;
       state.error = null;
+      state.initiateSamlLoginLoading = false;
+      state.downloadPublicKeyLoading = false;
     },
   },
   extraReducers: (builder) => {
     // -------------------- initiateSamlLogin --------------------
     builder
       .addCase(initiateSamlLogin.pending, (state) => {
-        state.loading = true;
+        state.initiateSamlLoginLoading = true;
         state.error = null;
       })
       .addCase(initiateSamlLogin.fulfilled, (state, action) => {
-        state.loading = false;
+        state.initiateSamlLoginLoading = false;
         state.acsUrl = action.payload.acsUrl;
         state.publicCertificate = action.payload.publicCertificate;
         state.xml = action.payload.xml;
       })
       .addCase(initiateSamlLogin.rejected, (state, action) => {
-        state.loading = false;
+        state.initiateSamlLoginLoading = false;
         state.error =
           action.payload?.errorReason ||
           'Something went wrong while initiating SSO login. Please check your inputs and try again.';
@@ -115,5 +117,5 @@ const homeSlice = createSlice({
 });
 
 // -------------------- EXPORTS --------------------
-export const { setLoading, setHomeInputState, resetHomeState } = homeSlice.actions;
+export const { setDownloadPublicKeyLoading, setHomeInputState, resetHomeState } = homeSlice.actions;
 export default homeSlice.reducer;
