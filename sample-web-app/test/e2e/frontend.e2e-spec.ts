@@ -1,15 +1,7 @@
 import { test, expect, request } from '@playwright/test';
-import fs from 'fs';
 
 const backendUrl = 'http://localhost:9000';
 const frontendURL = 'http://localhost:8000';
-
-// ✅ Expected exact helper texts (adjust if your app differs)
-const EXPECTED_ACS_HELPER =
-  'Vendors can expect to receive the SAML response here.';
-const EXPECTED_CERT_HELPER =
-  'Public certificate required to encrypt the SAML assertion before it is sent to the Test ACS URL.';
-
 
     // TC-001: Check backend health
     test('backend should return status 200 for /api/health', async () => {
