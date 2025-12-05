@@ -74,24 +74,24 @@ jobs:
           name: backend-e2e-html
           path: sample-web-app/backend/test-results/html/e2e-report.html
 
-      # - name: Publish Test Summary
-      #   uses: test-summary/action@v2
-      #   with:
-      #     paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
+      - name: Publish Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
 
-      # - name: Install Playwright Browsers
-      #   working-directory: sample-web-app
-      #   run: npx playwright install chromium
+      - name: Install Playwright Browsers
+        working-directory: sample-web-app
+        run: npx playwright install chromium
 
-      # - name: Run frontend e2e tests
-      #   working-directory: sample-web-app
-      #   run: npx playwright test
+      - name: Run frontend e2e tests
+        working-directory: sample-web-app
+        run: npx playwright test
 
-      # - name: Upload e2e HTML frontend Report
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: frontend-e2e-html
-      #     path: sample-web-app/frontend/test-results/frontend-report.html
+      - name: Upload e2e HTML frontend Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-html
+          path: sample-web-app/frontend/test-results/frontend-report.html
 
       - name: Build Docker Image
         run: |
