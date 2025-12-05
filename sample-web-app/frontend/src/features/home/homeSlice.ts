@@ -44,7 +44,7 @@ export const initiateSamlLogin = createAsyncThunk<
     let statusCode: string | undefined;
     if (err instanceof AxiosError) {
       // Extract status code from axios error
-      statusCode = err.response?.status ? String(err.response.status) : undefined;
+      statusCode = err.response?.status ? String(err.response.status) : '503';
       message = err.response?.data?.message || err.message || 'Unexpected server error';
       // If response has error data, try to extract errorReason
       if (err.response?.data && typeof err.response.data === 'object') {
