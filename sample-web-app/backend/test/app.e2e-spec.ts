@@ -11,33 +11,37 @@ import nock from 'nock';
 import fs from 'fs';
 import path from 'path';
 
-console.log(startClientTestServer);
-
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
   let agent: any;
   let payload: any;
+  let xml: any;
 
   const samlLoginApi = '/saml/login';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
-
   const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
   const validCertificate = fs.readFileSync(certPath, 'utf8');
 
- payload = {
-    acsUrl: acsUrlMock,   // <-- ADD THIS LINE
-    publicCertificate: validCertificate,
-    attributes: {
-      firstName: 'John',
-      lastName: 'Doe',
-      memberId: 'AS83747TB',
-      email: 'john.doe@example.com',
-    },
-  };
+  payload = {
+      acsUrl: acsUrlMock,   // <-- ADD THIS LINE
+      publicCertificate: validCertificate,
+      attributes: {
+        firstName: 'John',
+        lastName: 'Doe',
+        memberId: 'AS83747TB',
+        email: 'john.doe@example.com',
+      },
+    };
+
+  const fname = payload.attributes.firstName;
+  const lname = payload.attributes.lastName;
+  const memId = payload.attributes.memberId;
+  const reqCertificate = payload.publicCertificate;
+  const mailID = payload.attributes.email;
+  const reqAcsUrl = payload.acsUrl;
 
   beforeAll(async () => {
     try {
-      //clientApp = await startClientTestServer();   // starts on port 7000
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [AppModule],
       })
@@ -81,28 +85,8 @@ describe('SAML backend testcases (e2e)', () => {
   });
 
    it('validate success true message and attributes on saml/login API response', async () => {
-    console.log('validate success true message and attributes on saml/login API response');
-    const requestBody = {
-    acsUrl: acsUrlMock,
-    publicCertificate:  validCertificate,
-    attributes: {
-      firstName: "John",
-      lastName: "Doe",
-      memberId: "AS83747TB",
-      email: "john.doe@example.com"
-    }
-  }
-
-  const fname = requestBody.attributes.firstName;
-  const lname = requestBody.attributes.lastName;
-  const memId = requestBody.attributes.memberId;
-  const reqCertificate = requestBody.publicCertificate;
-  const mailID = requestBody.attributes.email;
-  const reqAcsUrl = requestBody.acsUrl;
-
-
-  const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
-    .send(requestBody).catch((err: any) => {
+    const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
+    .send(payload).catch((err: any) => {
       console.error('Supertest Error:', err.res?.text || err);
       throw err;
     });
@@ -112,14 +96,19 @@ describe('SAML backend testcases (e2e)', () => {
     expect(res.body).toHaveProperty('acsUrl',reqAcsUrl);
     expect(res.body).toHaveProperty('xml');
     
-    const xml = res.body.xml;
+    xml = res.body.xml;
+  console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
+  }, 4000);
 
-  // -----------------------------
-  // XML ASSERTIONS
-  // -----------------------------
+  it('validate saml xml values in saml/login API response', async () => {
   expect(xml).toContain('<samlp:Response');
   expect(xml).toContain('<saml:Assertion');
   expect(xml).toContain('<saml:Issuer>Candescent</saml:Issuer>');
+  expect(xml).toContain('IssueInstant=');
+  expect(xml).toContain('NotOnOrAfter=');
+  }, 4000);
+
+  it('validate <saml:AttributeValue> should be same as in requestbody in saml/login API response', async () => {
   expect(xml).toContain('<saml:NameID>'+memId+'</saml:NameID>');
   expect(xml).toContain('<saml:Attribute Name="firstName">');
   expect(xml).toContain('<saml:AttributeValue>'+fname+'</saml:AttributeValue>');
@@ -129,10 +118,6 @@ describe('SAML backend testcases (e2e)', () => {
   expect(xml).toContain('<saml:AttributeValue>'+mailID+'</saml:AttributeValue>');
   expect(xml).toContain('<saml:Attribute Name="memberId">');
   expect(xml).toContain('<saml:AttributeValue>'+memId+'</saml:AttributeValue>');
-  expect(xml).toContain('IssueInstant=');
-  expect(xml).toContain('NotOnOrAfter=');
-
-  console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
   }, 4000);
 
     function extractAttributeErrors(errors: any[]) {
