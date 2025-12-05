@@ -79,9 +79,13 @@ jobs:
         with:
           paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
 
+      - name: Install e2e dependencies (sample-web-app)
+        working-directory: sample-web-app
+        run: npm ci
+
       - name: Install Playwright Browsers
         working-directory: sample-web-app
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps
 
       - name: Run frontend e2e tests
         working-directory: sample-web-app
