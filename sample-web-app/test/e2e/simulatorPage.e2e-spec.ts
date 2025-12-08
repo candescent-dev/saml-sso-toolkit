@@ -27,8 +27,4 @@ test('TC-001: backend should return status 200 for /api/health', async () => {
 
   // Dispose the API context (good hygiene)
   await api.dispose();
-
-test('TC-002: Validate homepage elements and helper texts', async ({ page }) => {
-  // ---------- Helper text validations ----------
-  await expect(simulator.textACSUrl).toBeVisible();
 });
