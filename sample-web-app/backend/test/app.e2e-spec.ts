@@ -132,19 +132,20 @@ describe('SAML backend testcases (e2e)', () => {
 
 
   it('validate saml extracted values in response', async () => {
+    const isoMinute = (d: Date) => d.toISOString().slice(0, 16);
+    const expectedDate = new Date(Date.now() + 5 * 60 * 1000);
     expect(samlExtracted.destination).toContain(acsUrlMock);
     expect(samlExtracted.issuerTop).toBe(issuerTopExpected);
     expect(samlExtracted.issuerAssertion).toBe(issuerTopExpected);
     expect(samlExtracted.nameId).toBe(memId);
-    //expect(samlExtracted.scdNotOnOrAfter).toBe('2025-12-08T08:56:29.055Z');
+    expect(samlExtracted.scdNotOnOrAfter.slice(0, 16)).toBe(isoMinute(expectedDate));
     expect(samlExtracted.scdRecipient).toBe(acsUrlMock);
-    //expect(samlExtracted.condNotOnOrAfter).toBe('2025-12-08T08:56:29.055Z');
+    expect(samlExtracted.condNotOnOrAfter.slice(0, 16)).toBe(isoMinute(expectedDate));
     expect(samlExtracted.audience).toBe(mailID);
     expect(samlExtracted.attributes.firstName).toBe(fname);
     expect(samlExtracted.attributes.lastName).toBe(lname);
     expect(samlExtracted.attributes.email).toBe(mailID);
     expect(samlExtracted.attributes.memberId).toBe(memId);
-
   }, 4000);
 
   it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same response', async () => {
