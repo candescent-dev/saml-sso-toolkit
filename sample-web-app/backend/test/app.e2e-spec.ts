@@ -9,17 +9,22 @@ import { validate } from 'class-validator';
 import nock from 'nock';
 import fs from 'fs';
 import path from 'path';
+import { extractSamlFields } from './samlparser';
 
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
   let agent: any;
   let payload: any;
   let xml: any;
+  let samlExtracted: any;
 
   const samlLoginApi = '/saml/login';
+  const acsMockURI = 'http://localhost:7000';
+  const validatorUri = '/api/saml-validator/acs';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
   const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
   const validCertificate = fs.readFileSync(certPath, 'utf8');
+  const issuerTopExpected = 'Candescent';
 
   payload = {
     acsUrl: acsUrlMock,
@@ -38,6 +43,7 @@ describe('SAML backend testcases (e2e)', () => {
   const reqCertificate = payload.publicCertificate;
   const mailID = payload.attributes.email;
   const reqAcsUrl = payload.acsUrl;
+
 
   beforeAll(async () => {
     try {
@@ -60,8 +66,8 @@ describe('SAML backend testcases (e2e)', () => {
       throw e;
     }
     console.log('Mock client ACS endpoint');
-    nock('http://localhost:7000')
-      .post('/api/saml-validator/acs').query(true)
+    nock(acsMockURI)
+      .post(validatorUri).query(true)
       .reply(200, { success: true });
     console.log('Mock client ACS endpoint successful');
   });
@@ -96,7 +102,8 @@ describe('SAML backend testcases (e2e)', () => {
     expect(res.body).toHaveProperty('xml');
 
     xml = res.body.xml;
-    console.log('Verified response status is 201, success is true, public certificate is valid and xml is present.', res.body);
+    samlExtracted = extractSamlFields(xml);
+    console.log('xml is -> ', res.body);
   }, 4000);
 
   it('validate saml xml values in saml/login API response', async () => {
@@ -109,6 +116,10 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('validate <saml:AttributeValue> should be same as in requestbody in saml/login API response', async () => {
     expect(xml).toContain('<saml:NameID>' + memId + '</saml:NameID>');
+    expect(xml).toContain(
+      '    <saml:AudienceRestriction>\n' +
+      '        <saml:Audience>' + mailID + '</saml:Audience>\n' +
+      '      </saml:AudienceRestriction>');
     expect(xml).toContain('<saml:Attribute Name="firstName">');
     expect(xml).toContain('<saml:AttributeValue>' + fname + '</saml:AttributeValue>');
     expect(xml).toContain('<saml:Attribute Name="lastName">');
@@ -117,6 +128,26 @@ describe('SAML backend testcases (e2e)', () => {
     expect(xml).toContain('<saml:AttributeValue>' + mailID + '</saml:AttributeValue>');
     expect(xml).toContain('<saml:Attribute Name="memberId">');
     expect(xml).toContain('<saml:AttributeValue>' + memId + '</saml:AttributeValue>');
+  }, 4000);
+
+
+  it('validate saml extracted values in response', async () => {
+    expect(samlExtracted.destination).toContain(acsUrlMock);
+    expect(samlExtracted.issuerTop).toBe(issuerTopExpected);
+    expect(samlExtracted.issuerAssertion).toBe(issuerTopExpected);
+    expect(samlExtracted.nameId).toBe(memId);
+    //expect(samlExtracted.scdNotOnOrAfter).toBe('2025-12-08T08:56:29.055Z');
+    expect(samlExtracted.scdRecipient).toBe(acsUrlMock);
+    //expect(samlExtracted.condNotOnOrAfter).toBe('2025-12-08T08:56:29.055Z');
+    expect(samlExtracted.audience).toBe(mailID);
+    expect(samlExtracted.attributes.firstName).toBe(fname);
+    expect(samlExtracted.attributes.lastName).toBe(lname);
+    expect(samlExtracted.attributes.email).toBe(mailID);
+    expect(samlExtracted.attributes.memberId).toBe(memId);
+
+  }, 4000);
+
+  it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same response', async () => {
   }, 4000);
 
   function extractAttributeErrors(errors: any[]) {
@@ -211,7 +242,6 @@ describe('SAML backend testcases (e2e)', () => {
       expect.arrayContaining([
         'acsUrl must be a URL address',
         'acsUrl should not be empty',
-
       ]),
     );
   });
