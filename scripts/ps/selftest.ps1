@@ -3,7 +3,6 @@ $ErrorActionPreference = "Stop"
 
 # ---- Setup ----
 $CONTAINER_NAME = "saml-sso-toolkit-container"
-$FRONTEND_PORT = if ($args.Count -ge 1) { $args[0] } else { 8000 }
 $MAX_RETRIES = 5
 $RETRY_INTERVAL = 2
 
@@ -63,11 +62,21 @@ function GetBackendPort {
     return $port
 }
 
+function GetFrontendPort {
+    Log "Reading frontend port from config.json inside the image..."
+    $port = docker run --rm "${IMAGE_NAME}:${TAG}" sh -c 'jq -r ".frontendPort" /app/config.json'
+    if ([string]::IsNullOrEmpty($port) -or $port -eq "null") {
+        ErrorExit "Failed to read frontendPort from config.json. Please check the file inside the image."
+    }
+    return $port
+}
+
 # ---- Main Execution ----
 Log "Starting application self-test..."
 CheckContainerStatus
 
 $BACKEND_PORT = GetBackendPort
+$FRONTEND_PORT = GetFrontendPort
 $FRONTEND_URL = "http://localhost:${FRONTEND_PORT}"
 $BACKEND_URL  = "http://localhost:${BACKEND_PORT}/api/health"
 

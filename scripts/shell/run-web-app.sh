@@ -5,7 +5,6 @@ set -euo pipefail
 IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
 CONTAINER_NAME="saml-sso-toolkit-container"
-FRONTEND_PORT=${1:-8000}
 
 # ---- Helpers ----
 log() { echo -e "\033[1;34m[INFO]\033[0m $*"; }
@@ -45,6 +44,14 @@ BACKEND_PORT=$(docker run --rm "$IMAGE_NAME:$TAG" sh -c 'jq -r ".backendPort" /a
 
 if [[ -z "$BACKEND_PORT" || "$BACKEND_PORT" == "null" ]]; then
   error_exit "Failed to read backendPort from config.json. Please check the file inside the image."
+fi
+
+# ---- Extract frontend port from config.json inside the image ----
+log "Reading frontend port from config.json inside the image..."
+FRONTEND_PORT=$(docker run --rm "$IMAGE_NAME:$TAG" sh -c 'jq -r ".frontendPort" /app/config.json')
+
+if [[ -z "$FRONTEND_PORT" || "$FRONTEND_PORT" == "null" ]]; then
+  error_exit "Failed to read frontendPort from config.json. Please check the file inside the image."
 fi
 
 # ---- Run the container ----

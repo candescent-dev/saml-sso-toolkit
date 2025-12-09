@@ -5,7 +5,6 @@ set -euo pipefail
 # ---- Setup ----
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONTAINER_NAME="saml-sso-toolkit-container"
-FRONTEND_PORT=${1:-8000}
 MAX_RETRIES=5
 RETRY_INTERVAL=2
 IMAGE_NAME="saml-sso-toolkit"
@@ -80,11 +79,24 @@ get_backend_port() {
   echo "$port"
 }
 
+# ---- Get Frontend Port ----
+get_frontend_port() {
+  log "Reading frontend port from config.json inside the image..." >&2  
+  local port
+  port=$(docker run --rm "$IMAGE_NAME:$TAG" sh -c 'jq -r ".frontendPort" /app/config.json')
+
+  if [[ -z "$port" || "$port" == "null" ]]; then
+    error_exit "Failed to read frontendPort from config.json. Please check the file inside the image."
+  fi
+  echo "$port"
+}
+
 # ---- Main Execution ----
 log "Starting application self-test..."
 check_container_status
 
 BACKEND_PORT=$(get_backend_port)
+FRONTEND_PORT=$(get_frontend_port)
 
 FRONTEND_URL="http://localhost:$FRONTEND_PORT"
 BACKEND_URL="http://localhost:$BACKEND_PORT/api/health"

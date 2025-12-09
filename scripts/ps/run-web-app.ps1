@@ -5,7 +5,6 @@ $ErrorActionPreference = "Stop"
 $IMAGE_NAME = "saml-sso-toolkit"
 $TAG = "latest"
 $CONTAINER_NAME = "saml-sso-toolkit-container"
-$FRONTEND_PORT = if ($args.Count -ge 1) { $args[0] } else { 8000 }
 
 function Log {
     param([string]$Message)
@@ -48,6 +47,15 @@ $BACKEND_PORT = docker run --rm "${IMAGE_NAME}:${TAG}" sh -c 'jq -r ".backendPor
 
 if ([string]::IsNullOrEmpty($BACKEND_PORT) -or $BACKEND_PORT -eq "null") {
     ErrorExit "Failed to read backendPort from config.json. Please check the file inside the image."
+}
+
+# ---- Extract frontend port from config.json inside the image ----
+Log "Reading frontend port from config.json inside the image..."
+
+$BACKEND_PORT = docker run --rm "${IMAGE_NAME}:${TAG}" sh -c 'jq -r ".frontendPort" /app/config.json'
+
+if ([string]::IsNullOrEmpty($BACKEND_PORT) -or $BACKEND_PORT -eq "null") {
+    ErrorExit "Failed to read frontendPort from config.json. Please check the file inside the image."
 }
 
 # ---- Run the container ----
