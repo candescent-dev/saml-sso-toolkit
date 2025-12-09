@@ -52,9 +52,9 @@ if ([string]::IsNullOrEmpty($BACKEND_PORT) -or $BACKEND_PORT -eq "null") {
 # ---- Extract frontend port from config.json inside the image ----
 Log "Reading frontend port from config.json inside the image..."
 
-$BACKEND_PORT = docker run --rm "${IMAGE_NAME}:${TAG}" sh -c 'jq -r ".frontendPort" /app/config.json'
+$FRONTEND_PORT = docker run --rm "${IMAGE_NAME}:${TAG}" sh -c 'jq -r ".frontendPort" /app/config.json'
 
-if ([string]::IsNullOrEmpty($BACKEND_PORT) -or $BACKEND_PORT -eq "null") {
+if ([string]::IsNullOrEmpty($FRONTEND_PORT) -or $FRONTEND_PORT -eq "null") {
     ErrorExit "Failed to read frontendPort from config.json. Please check the file inside the image."
 }
 
