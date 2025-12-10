@@ -4,6 +4,7 @@ import downloadIcon from '../../assets/download.svg';
 import greenTickIcon from '../../assets/green-tick.svg';
 import linkIcon from '../../assets/link.svg';
 import shieldIcon from '../../assets/shield.svg';
+import arrowTopIcon from '../../assets/arrowTop.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { initiateSamlLogin } from '../../features/home/homeSlice';
 import { HomeInputState } from '../../features/home/types';
@@ -94,6 +95,10 @@ const SuccessPage: FC = () => {
     }
   };
 
+  const handleSAMLValidatorClick = () => {
+    navigate('/samlValidator');
+  };
+
   return (
     <div className="success-page">
       <div className="success-container">
@@ -107,6 +112,11 @@ const SuccessPage: FC = () => {
               SAML response successfully transmitted to the test endpoint URL.
             </p>
           </div>
+        </div>
+        {/* SAML Validator Link */}
+        <div onClick={handleSAMLValidatorClick} className="header-label-row">
+          <label className="link-label">SAML Validator</label>
+          <img src={arrowTopIcon} className="link-icon" alt="OIDC Validator" loading="lazy" />
         </div>
         {/* ACS URL */}
         <div className="success-content">
