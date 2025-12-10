@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import errorIcon from '../../assets/error.svg';
 import codeIcon from '../../assets/code.svg';
 import vectorIcon from '../../assets/vector.svg';
+import arrowTopIcon from '../../assets/arrowTop.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { initiateSamlLogin } from '../../features/home/homeSlice';
 import { HomeInputState } from '../../features/home/types';
@@ -58,6 +59,10 @@ const ErrorPage: FC = () => {
     }
   };
 
+  const handleSAMLValidatorClick = () => {
+    navigate('/samlValidator');
+  };
+
   return (
     <div className="error-page">
       <div className="error-container">
@@ -69,6 +74,11 @@ const ErrorPage: FC = () => {
             <h1 className="error-title">Transmission failed!</h1>
             <p className="error-submessage">SAML response transmission has failed.</p>
           </div>
+        </div>
+        {/* SAML Validator Link */}
+        <div onClick={handleSAMLValidatorClick} className="header-label-row">
+          <label className="link-label">SAML Validator</label>
+          <img src={arrowTopIcon} className="link-icon" alt="OIDC Validator" loading="lazy" />
         </div>
         {/* Error Code */}
         <div className="error-content">
