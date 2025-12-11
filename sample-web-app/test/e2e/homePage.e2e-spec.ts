@@ -3,7 +3,8 @@
 import { test, expect, request } from '@playwright/test';
 
 // POM + global URLs (exported from POM)
-import { HomePage, backendUrl, frontendURL, healthURL } from './pages/homePage';
+import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl,validCertificate } from './pages/homePage';
+import { ErrorPage } from './pages/errorPage';
 
 // -------------------------------
 // TC-001: Backend health endpoint
@@ -57,3 +58,97 @@ test('TC-002: Validate homepage elements and helper texts', async ({ page }) => 
   await expect(home.runSimulationBtn).toBeVisible();
   await expect(home.publicKeyDwdBtn).toBeVisible();
 });
+test('TC-003: Run Simulation button should remain disabled for invalid ACS URL and certificate', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto();
+  await home.textACSUrl.fill('invalid-url'); // invalid URL
+  await home.publicKey.fill('TestinvalidCertificate'); // invalid certificate
+  const runBtn = home.runSimulationBtn;
+  await expect(runBtn).toBeDisabled();
+});
+
+test('TC-004: Valid certificate but unreachable ACS URL should redirect to 502 Error Page', async ({ page }) => {
+
+  const home = new HomePage(page);
+  const errorPage = new ErrorPage(page);
+
+  await home.goto();
+
+  // Valid format but wrong server (google.com)
+  const wrongValidFormatURL = 'http://nonexistent-test-domain-xyz-123.com/acs';
+  await home.textACSUrl.fill(wrongValidFormatURL);
+
+  await home.publicKey.fill(validCertificate);
+
+  // Button must be enabled
+  await expect(home.runSimulationBtn).toBeEnabled();
+
+  await home.runSimulationBtn.click();
+
+  // User should navigate to the error page
+  await expect(errorPage.title).toBeVisible();
+
+  await expect(errorPage.errorCode).toHaveValue('502');
+  await expect(errorPage.errorReason).toContainText('ENOTFOUND');
+  await expect(errorPage.retryBtn).toBeVisible();
+  await expect(errorPage.backHome).toBeVisible();
+});
+
+test('TC-005: Valid ACS URL with invalid certificate should show 422 Parsing Error Page', async ({ page }) => {
+  const home = new HomePage(page);
+  const errorPage = new ErrorPage(page);
+
+  await home.goto();
+
+  await home.textACSUrl.fill(validACSUrl);
+
+  // Invalid certificate: missing PEM headers intentionally to simulate parse failure
+  const invalidCertificate = `-----BEGIN CERTIFICATE-----\nMIIDqDCCApACCQDgP4andCbAmO2Fu1gdTJrQ
+  DPUYR4PfRFgx21hznvbGq\nbQWIuQDwgWcnppYvbA/BzUiXXg8Mg3xg4X9oGQ==\n-----END CERTIFICATE-----`;
+
+  await home.publicKey.fill(invalidCertificate);
+
+  // Button must be enabled (assuming URL and cert format are valid enough)
+  await expect(home.runSimulationBtn).toBeEnabled();
+
+  await home.runSimulationBtn.click();
+
+  // User should navigate to the error page
+  await expect(errorPage.title).toBeVisible();
+
+  // Error code should be 422 for parsing failure
+  await expect(errorPage.errorCode).toHaveValue('422');
+
+  // Error reason should mention parsing failure
+  await expect(errorPage.errorReason).toContainText('Certificate parsing failed');
+
+  // Buttons must be visible on error page
+  await expect(errorPage.retryBtn).toBeVisible();
+  await expect(errorPage.backHome).toBeVisible();
+});
+
+test('TC-006: User should return to Homepage when selecting Back to Home on Error Page', async ({ page }) => {
+  const home = new HomePage(page);
+  const errorPage = new ErrorPage(page);
+
+  await home.goto();
+
+  // Trigger an error by entering a non-existent ACS URL with a valid cert
+  await home.textACSUrl.fill('http://invalid-domain-xyz.com/acs');
+  await home.publicKey.fill(validCertificate);
+
+  await expect(home.runSimulationBtn).toBeEnabled();
+  await home.runSimulationBtn.click();
+
+  // User should reach the error page
+  await expect(errorPage.title).toBeVisible();
+
+  // Click "Back to Home Page"
+  await errorPage.backHome.click();
+
+  // User should be returned to the homepage
+  await expect(home.textACSUrl).toBeVisible();
+  await expect(page).toHaveURL(frontendURL);
+});
+
+
