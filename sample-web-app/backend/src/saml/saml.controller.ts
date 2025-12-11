@@ -35,10 +35,10 @@ export class SamlController {
   }
 
   /**
-   * GET /saml/auth-setting — Retrieve saml setting from cache.json file
+   * GET /saml/saml-setting — Retrieve saml setting from cache.json file
    * @returns The cached saml setting or a message if none exist or expired
    */
-  @Get('auth-setting')
+  @Get('saml-setting')
   public async getAuthSetting(): Promise<{
     message: string;
     authSetting?: AuthSettingData;
