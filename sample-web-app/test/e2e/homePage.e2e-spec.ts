@@ -66,6 +66,84 @@ test('TC-003: Run Simulation button should remain disabled for invalid ACS URL a
   await expect(runBtn).toBeDisabled();
 });
 
+test('TC-004: Valid URL + Invalid certificate keeps button disabled', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
 
+  await home.textACSUrl.fill(validACSUrl);
+  await home.publicKey.fill("invalid-cert");
+
+  // Run Simulation must stay disabled
+  await expect(home.ErrorPublicKey).toBeVisible();
+  await expect(home.runSimulationBtn).toBeDisabled();
+});
+
+test('TC-005: Invalid URL + valid certificate keeps button disabled', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+  await home.textACSUrl.fill("invalid url");
+  await home.publicKey.fill(validCertificate);
+
+  // Run Simulation must stay disabled
+  await expect(home.ErrorACSUrl).toBeVisible();
+  await expect(home.runSimulationBtn).toBeDisabled();
+});
+
+test('TC-006: Run Simulation disabled when ACS URL is empty', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+  // Leave ACS URL empty
+  await home.textACSUrl.fill(" ");
+  await home.publicKey.fill(validCertificate);
+
+  // Run Simulation must stay disabled
+  await expect(home.runSimulationBtn).toBeDisabled();
+});
+
+test('TC-007: Run Simulation disabled when Public certificate is empty', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+  await home.textACSUrl.fill(validACSUrl);
+
+  // Leave certificate empty
+  await home.publicKey.fill(" ");
+
+  // Run Simulation must stay disabled
+  await expect(home.runSimulationBtn).toBeDisabled();
+});
+
+test('TC-008: Run Simulation disabled when both ACS Url and Public certificate is empty', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+  // Leave ACS URL empty
+  await home.textACSUrl.fill(" ");
+
+  // Leave certificate empty
+  await home.publicKey.fill(" ");
+
+  // Run Simulation must stay disabled
+  await expect(home.runSimulationBtn).toBeDisabled();
+});
+
+test('TC-009: Invalid certificate should show validation error', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+
+  await home.publicKey.fill("Test invalid input "); // invalid content
+  await expect(home.ErrorPublicKey).toBeVisible();
+});
+
+test('TC-010: Invalid ACS URL should show validation error', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto(frontendURL);
+
+  await home.textACSUrl.fill("Test invalid input "); // invalid content
+  await expect(home.ErrorACSUrl).toBeVisible();
+});
 
 
