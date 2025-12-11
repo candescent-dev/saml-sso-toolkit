@@ -6,13 +6,15 @@ import Header from '../components/Header/Header';
 const HomePage = lazy(() => import('../pages/Home/HomePage'));
 const SuccessPage = lazy(() => import('../pages/Success/SuccessPage'));
 const ErrorPage = lazy(() => import('../pages/Error/ErrorPage'));
-const PageNotFound = lazy(() => import('../pages/PageNotFound/PageNotFoundPage')); //  404 Page Not Found
+const PageNotFound = lazy(() => import('../pages/PageNotFound/PageNotFoundPage'));
+const SamlValidatorPage = lazy(() => import('../pages/SamlValidator/SamlValidatorPage'));
 
 // Route paths (type-safe)
 const ROUTES = {
   HOME: '/',
   SUCCESS: '/success',
   ERROR: '/error',
+  SAML_VALIDATOR: '/samlValidator',
 } as const;
 
 // Fallback skeleton while page loads
@@ -30,6 +32,7 @@ const AppRoutes: FC = () => (
         <Route path={ROUTES.ERROR} element={<ErrorPage />} />
         {/* 404 route */}
         <Route path="*" element={<PageNotFound />} />
+        <Route path={ROUTES.SAML_VALIDATOR} element={<SamlValidatorPage />} />
       </Routes>
     </Suspense>
   </Router>
