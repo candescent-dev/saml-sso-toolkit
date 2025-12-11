@@ -78,7 +78,7 @@ const ErrorPage: FC = () => {
         {/* SAML Validator Link */}
         <div onClick={handleSAMLValidatorClick} className="header-label-row">
           <label className="link-label">SAML Validator</label>
-          <img src={arrowTopIcon} className="link-icon" alt="OIDC Validator" loading="lazy" />
+          <img src={arrowTopIcon} className="link-icon" alt="SAML Validator" loading="lazy" />
         </div>
         {/* Error Code */}
         <div className="error-content">

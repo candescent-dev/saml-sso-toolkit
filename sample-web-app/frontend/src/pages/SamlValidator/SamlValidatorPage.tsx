@@ -47,14 +47,14 @@ const SamlValidatorPage: FC = () => {
       const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'config.json';
+      link.download = 'samlConfig.json';
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
       if (downloadTimerRef.current) clearTimeout(downloadTimerRef.current);
       downloadTimerRef.current = window.setTimeout(() => {
-        setDownloadMessage('config.json downloaded successfully');
+        setDownloadMessage('samlConfig.json downloaded successfully');
         dispatch(setPublishSamlSettingLoading(false));
       }, 2000);
     } catch (error: any) {

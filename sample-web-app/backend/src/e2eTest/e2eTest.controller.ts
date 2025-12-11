@@ -1,6 +1,6 @@
-import { Controller, Post, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { E2ETestService } from './e2eTest.service';
+import { Controller, Post, Res, NotFoundException } from '@nestjs/common';
 
 /**
  * Controller exposing a single endpoint for running all E2E tests
@@ -17,6 +17,13 @@ export class E2ETestController {
   @Post()
   async downloadE2EReports(@Res() res: Response) {
     try {
+      // Retrieve cached saml setting
+      const authSetting = await this.e2eTestService.getAuthSettingFromCache();
+      if (!authSetting) {
+        // Throw NotFoundException if cache is empty
+        throw new NotFoundException('Saml setting not found in cache or has expired');
+      }
+      // Run test suite if cache is not empty
       const zipBuffer = await this.e2eTestService.runE2ETestsAndZip();
       if (!zipBuffer) throw new Error('Failed to generate ZIP');
       // Using @Res() because we need to set custom headers and stream binary content
@@ -29,7 +36,7 @@ export class E2ETestController {
     } catch (error: any) {
       const status = error?.status || 500;
       const message = error?.message || 'Something went wrong. Please try again later';
-      return res.status(status).json({ message, status });
+      return res.status(status).json({ message });
     }
   }
 }

@@ -1,6 +1,6 @@
 import type { Response } from 'express';
-import { Controller, Get, Res } from '@nestjs/common';
 import { PublishConfigService } from './publishConfig.service';
+import { Controller, Get, Res, NotFoundException } from '@nestjs/common';
 
 @Controller('publish-config')
 export class PublishConfigController {
@@ -12,19 +12,26 @@ export class PublishConfigController {
    * @returns The config.json file as a downloadable attachment or an error JSON
    */
   @Get()
-  downloadConfig(@Res() res: Response): Response {
+  async downloadConfig(@Res() res: Response): Promise<Response> {
     try {
-      const fileBuffer = this.publishConfigService.getConfigFile();
+      // Retrieve cached saml setting
+      const authSetting = await this.publishConfigService.getAuthSettingFromCache();
+      if (!authSetting) {
+        // Throw NotFoundException if cache is empty
+        throw new NotFoundException('Saml setting not found in cache or has expired');
+      }
+      // Generate config file if cache is not empty
+      const fileBuffer = await this.publishConfigService.getConfigFile();
       res.set({
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': 'attachment; filename="config.json"',
+        'Content-Disposition': 'attachment; filename="samlConfig.json"',
         'Content-Length': fileBuffer.length.toString(),
       });
       return res.send(fileBuffer);
     } catch (error: any) {
       const status = error?.status || 500;
       const message = error?.message || 'Something went wrong. Please try again later';
-      return res.status(status).json({ message, status });
+      return res.status(status).json({ message });
     }
   }
 }

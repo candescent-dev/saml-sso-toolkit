@@ -1,23 +1,97 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { resolve } from 'path';
+import type { Cache } from 'cache-manager';
+import { existsSync, readFileSync } from 'fs';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { AppConfig } from './types/publishConfig.types';
+import { AuthSettingData } from '../saml/types/authSetting.types';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 const APP_CONFIG_PATH = '../../../../config.json';
+const CACHE_JSON_PATH = '../../../../cache.json';
 
 @Injectable()
 export class PublishConfigService {
-  private readonly appConfigPath = path.resolve(__dirname, APP_CONFIG_PATH);
+  private readonly appConfigPath = resolve(__dirname, APP_CONFIG_PATH);
+  private readonly cacheJsonPath = resolve(__dirname, CACHE_JSON_PATH);
+  private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
+
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
-   * Reads and returns the SAML config.json file
-   * @returns Buffer containing the contents of config.json
-   * @throws NotFoundException if the config.json file is missing
+   * Retrieve cached saml setting, or undefined if expired.
    */
-  getConfigFile(): Buffer {
-    if (!fs.existsSync(this.appConfigPath)) {
-      throw new NotFoundException(`Config file not found at: ${this.appConfigPath}`);
+  async getAuthSettingFromCache(): Promise<AuthSettingData | undefined> {
+    return await this.cacheManager.get<AuthSettingData>(this.AUTH_SETTING_CACHE_KEY);
+  }
+
+  /**
+   * Generic method to read and parse a JSON file
+   * @template T The expected type of the JSON content
+   * @param path - Full path to the JSON file
+   * @param fileName - Friendly file name for error messages
+   * @returns Parsed JSON object
+   * @throws NotFoundException If the file does not exist
+   * @throws InternalServerErrorException If the file cannot be read or parsed
+   */
+  private readJsonFile<T>(path: string, fileName: string): T {
+    if (!existsSync(path)) {
+      throw new NotFoundException(`${fileName} not found at: ${path}`);
     }
-    const fileBuffer = fs.readFileSync(this.appConfigPath);
-    return fileBuffer;
+    try {
+      const fileContent = readFileSync(path, 'utf8');
+      return JSON.parse(fileContent) as T;
+    } catch (error) {
+      throw new InternalServerErrorException(`Failed to read or parse ${fileName}`);
+    }
+  }
+
+  /**
+   * Retrieves the app configuration from config.json
+   * @returns The parsed AppConfig object
+   * @throws NotFoundException If config.json is missing
+   * @throws InternalServerErrorException If config.json cannot be parsed or required fields are missing
+   */
+  getAppConfig(): AppConfig {
+    const config = this.readJsonFile<AppConfig>(this.appConfigPath, 'config.json');
+    if (!config.frontendPort) {
+      throw new InternalServerErrorException('frontendPort is missing in config.json');
+    }
+    if (!config.backendPort) {
+      throw new InternalServerErrorException('backendPort is missing in config.json');
+    }
+    return config;
+  }
+
+  /**
+   * Retrieves the authentication settings from cache.json
+   * @returns AuthSettingData The parsed AuthSettingData object
+   * @throws NotFoundException If cache.json is missing
+   * @throws InternalServerErrorException If cache.json cannot be parsed or required fields are missing
+   */
+  getAuthSetting(): AuthSettingData {
+    const authSettings = this.readJsonFile<AuthSettingData>(this.cacheJsonPath, 'cache.json');
+    if (!authSettings.acsUrl) {
+      throw new InternalServerErrorException('Missing acsUrl');
+    }
+    return authSettings;
+  }
+
+  /**
+   * Reads both config.json and cache.json, merges them, and returns the result as a Buffer
+   * @returns The combined configuration as a JSON buffer
+   * @throws NotFoundException If either config.json or cache.json is missing
+   * @throws InternalServerErrorException If either file cannot be parsed or required fields are missing
+   */
+  async getConfigFile(): Promise<Buffer> {
+    const appConfig = this.getAppConfig();
+    const authSettings = this.getAuthSetting();
+    // Merge saml settings into app config
+    appConfig.acsUrl = authSettings.acsUrl;
+    return Buffer.from(JSON.stringify(appConfig, null, 2));
   }
 }

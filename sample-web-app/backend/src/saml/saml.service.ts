@@ -1,17 +1,26 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { resolve } from 'path';
 import { create } from 'xmlbuilder2';
 import xmlenc from 'xml-encryption';
 import { SignedXml } from 'xml-crypto';
 import { X509Certificate } from 'crypto';
+import type { Cache } from 'cache-manager';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
-import { ACSServerResponse, ACSServerData, SamlResult } from './types/saml.types';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SamlRequestDto } from './dto/samlRequest.dto';
+import { AuthSettingData } from './types/authSetting.types';
+import { existsSync, writeFileSync, readFileSync } from 'fs';
 import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
+import { ACSServerResponse, ACSServerData, SamlResult } from './types/saml.types';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
-const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 const SAML_ISSUER: string = 'Candescent';
+const CACHE_JSON_PATH = '../../../../cache.json';
+const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 
 /**
  * Represents the separated SAML components.
@@ -23,7 +32,14 @@ interface BuiltSamlParts {
 
 @Injectable()
 export class SamlService {
-  constructor(private readonly httpService: HttpService) {}
+  private readonly cacheJsonPath = resolve(__dirname, CACHE_JSON_PATH);
+  private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
+  private readonly TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   /**
    * Throws a structured error used by the controller
@@ -210,11 +226,11 @@ export class SamlService {
       this.throwServiceError('SAML Assertion missing ID attribute — cannot sign', 500);
     }
     // Load private key
-    const privateKeyPath = path.resolve(__dirname, PRIVATE_KEY_PATH);
-    if (!fs.existsSync(privateKeyPath)) {
+    const privateKeyPath = resolve(__dirname, PRIVATE_KEY_PATH);
+    if (!existsSync(privateKeyPath)) {
       this.throwServiceError(`Private key file not found at: ${privateKeyPath}`, 500);
     }
-    const privateKey = fs.readFileSync(privateKeyPath, 'utf-8');
+    const privateKey = readFileSync(privateKeyPath, 'utf-8');
     // Strip headers for KeyInfo
     const certBody = validatedCert
       .replace('-----BEGIN CERTIFICATE-----', '')
@@ -407,5 +423,40 @@ export class SamlService {
         );
       }
     }
+  }
+
+  /**
+   * Stores saml settings in both cache and cache.json file
+   * @param acsUrl - The ACS endpoint URL provided by the SAML service provider
+   * @throws NotFoundException If the cache.json file does not exist
+   * @throws InternalServerErrorException If saving to the file or cache fails
+   */
+  async saveAuthSetting(acsUrl: string): Promise<void> {
+    if (!existsSync(this.cacheJsonPath)) {
+      throw new NotFoundException(`cache.json not found at: ${this.cacheJsonPath}`);
+    }
+    const authSettingData: AuthSettingData = {
+      acsUrl,
+      updatedAt: new Date().toISOString(),
+    };
+    // Save to file - for jest
+    try {
+      writeFileSync(this.cacheJsonPath, JSON.stringify(authSettingData, null, 2), 'utf8');
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to save saml settings');
+    }
+    // Save to cache
+    try {
+      await this.cacheManager.set(this.AUTH_SETTING_CACHE_KEY, { acsUrl }, this.TTL_MS);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to save saml settings to cache');
+    }
+  }
+
+  /**
+   * Retrieve cached saml setting, or undefined if expired.
+   */
+  async getAuthSettingFromCache(): Promise<AuthSettingData | undefined> {
+    return await this.cacheManager.get<AuthSettingData>(this.AUTH_SETTING_CACHE_KEY);
   }
 }
