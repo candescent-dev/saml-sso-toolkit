@@ -3,7 +3,7 @@
 import { test, expect, request } from '@playwright/test';
 
 // POM + global URLs (exported from POM)
-import { HomePage, backendUrl, frontendURL, healthURL } from './pages/homePage';
+import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl, validCertificate } from './pages/homePage';
 
 // -------------------------------
 // TC-001: Backend health endpoint
@@ -57,3 +57,15 @@ test('TC-002: Validate homepage elements and helper texts', async ({ page }) => 
   await expect(home.runSimulationBtn).toBeVisible();
   await expect(home.publicKeyDwdBtn).toBeVisible();
 });
+test('TC-003: Run Simulation button should remain disabled for invalid ACS URL and certificate', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto();
+  await home.textACSUrl.fill('invalid-url'); // invalid URL
+  await home.publicKey.fill('TestinvalidCertificate'); // invalid certificate
+  const runBtn = home.runSimulationBtn;
+  await expect(runBtn).toBeDisabled();
+});
+
+
+
+
