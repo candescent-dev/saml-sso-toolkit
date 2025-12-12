@@ -35,7 +35,7 @@ test('TC-001.1: client web server should return status 200 for /api/health', asy
   // Use a dedicated APIRequestContext to avoid polluting the UI Page context
   const api = await request.newContext();
 
-  const url = `http://localhost:7000/health`;
+  const url = `http://localhost:7000/api/health`;
   console.log(`[INFO] Health check URL: ${url}`);
 
   const response = await api.get(url);
