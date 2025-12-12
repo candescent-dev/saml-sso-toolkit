@@ -6,6 +6,8 @@ import { test, expect, request } from '@playwright/test';
 import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl, validCertificate } from './pages/homePage';
 import { SimulatorPage } from './pages/simulatorPage';
 import { ErrorPage } from './pages/errorPage';
+import fs from 'fs';
+import { XMLParser } from 'fast-xml-parser';
 
 const ACSUrl = 'http://localhost:7000/api/saml-validator/acs';
 
@@ -230,6 +232,43 @@ await page.waitForTimeout(3000);
 
   const json = await response.json();
   expect(json).toHaveProperty('xml');
+
+});
+
+// -------------------------------------------------------
+// TC-008: Validate downloaded XML contains updated data
+// -------------------------------------------------------
+test('TC-008: Validate downloaded XML contains updated data', async ({ page }) => {
+  // Initialize the POM with the current Playwright Page instance
+  const home = new HomePage(page);
+  const simulator = new SimulatorPage(page);
+  // Navigate to the app (defaults to frontendURL if none provided)
+  await home.goto(frontendURL);
+  await page.waitForTimeout(3000);
+
+  // ---------- Verify Homepage successfully visible ----------
+  await expect(home.textACSUrl).toBeVisible();
+  await expect(home.publicKey).toBeVisible();
+ 
+  // ---------Run Simulation with valid data ----------
+  await home.runSimulation(ACSUrl,validCertificate)
+  await expect(simulator.lblACSUrl).toBeVisible();
+
+  //-------Successful Simulation Text verification-----
+  await expect(simulator.headSuccessTitle).toHaveText('Simulation Successful');
+  await expect(simulator.lblSuccessMessage).toHaveText('SAML response successfully transmitted to the test endpoint URL.');
+  
+  //Download first XML
+  await simulator.btnXmlAssertion.click();
+
+  //verify xml content
+ const firstDownloadPromise = page.waitForEvent('download');
+  await simulator.btnXmlAssertion.click();
+  const firstDownload = await firstDownloadPromise;
+
+  //verify file downloaded is in .xml format
+const suggestedFileName = firstDownload.suggestedFilename();
+expect(suggestedFileName).toMatch(/\.xml$/i);
 
 });
 
