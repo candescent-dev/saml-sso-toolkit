@@ -11,7 +11,7 @@ import { Page, Locator } from '@playwright/test';
 export const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:9000';
 export const frontendURL = process.env.FRONTEND_URL ?? 'http://localhost:8000';
 export const healthURL = process.env.HEALTH_URL ?? '/api/health';
-export const validACSUrl =process.env.VALID_ACS_URL ?? 'http://localhost:8000/test/acs';
+export const validACSUrl = process.env.VALID_ACS_URL ?? 'http://localhost:8000/test/acs';
 
 export const validCertificate = `-----BEGIN CERTIFICATE-----
 MIIDqDCCApACCQDxEV5XnYNRzzANBgkqhkiG9w0BAQsFADCBlTELMAkGA1UEBhMC
@@ -37,7 +37,7 @@ bQWIuQDwgWcnppYvbA/BzUiXXg8Mg3xg4X9oGQ==
 -----END CERTIFICATE-----`;
 
 export class HomePage {
-  constructor(private page: Page) {}
+  constructor(private page: Page) { }
 
   // ---------- Lazy locator getters (initialized only on access) ----------
   get firstName(): Locator {
@@ -75,7 +75,14 @@ export class HomePage {
     );
   }
 
-  // ---------- Navigation ----------
+  get ErrorACSUrl(): Locator {
+    return this.page.locator("//p[contains(text(),'Invalid URL')]");
+  }
+
+  get ErrorPublicKey(): Locator {
+    return this.page.locator("//p[contains(text(),'Certificate must include BEGIN/END CERTIFICATE lin')]");
+  } 
+   // ---------- Navigation ----------
   async goto(url: string = frontendURL) {
     // Keeping a default makes test calls shorter: await home.goto();
     await this.page.goto(url);
