@@ -36,9 +36,13 @@ export class E2ETestService {
         'default',
         ['jest-junit', { outputDirectory: tempReportDir, outputName: 'jest-e2e.xml' }],
         [
-          'jest-html-reporter',
+          'jest-html-reporters',
           {
-            outputPath: join(tempReportDir, 'e2e-report.html'),
+            publicPath: tempReportDir,
+            filename: 'e2e-report.html',
+            inlineSource: true,
+            expand: true,
+            includeConsoleLog: true,
             includeFailureMsg: true,
             includeSuiteFailure: true,
           },
@@ -68,7 +72,7 @@ export class E2ETestService {
       if (!existsSync(htmlReportPath) || !existsSync(xmlReportPath))
         this.throwServiceError('Reports were not generated correctly', 500);
       /** Create zip file buffer and return */
-      return await this.createZipBuffer([htmlReportPath, xmlReportPath]);
+      return await this.createZipBufferFromDir(tempReportDir);
     } catch (error: any) {
       // Handle all errors via throwServiceError
       const message = error?.message || String(error) || 'Unknown error';
@@ -95,6 +99,28 @@ export class E2ETestService {
       archive.finalize();
     });
   }
+
+    private createZipBufferFromDir(dirPath: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!existsSync(dirPath)) {
+        return reject(new Error(`Report directory not found: ${dirPath}`));
+      }
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const chunks: Buffer[] = [];
+      // accumulate zip binary data into memory
+      archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+      archive.on('end', () => resolve(Buffer.concat(chunks)));
+      archive.on('error', (err: Error) => reject(err));
+      // add the whole directory contents into the archive root
+      archive.directory(dirPath, false);
+      // finalize the archive (starts writing)
+      archive.finalize();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
   /**
    * Deletes a temporary folder safely
