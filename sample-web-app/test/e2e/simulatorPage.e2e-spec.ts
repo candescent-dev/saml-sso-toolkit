@@ -31,6 +31,25 @@ test('TC-001: backend should return status 200 for /api/health', async () => {
   // Dispose the API context (good hygiene)
   await api.dispose();
 });
+test('TC-001.1: client web server should return status 200 for /api/health', async () => {
+  // Use a dedicated APIRequestContext to avoid polluting the UI Page context
+  const api = await request.newContext();
+
+  const url = `http://localhost:7000/health`;
+  console.log(`[INFO] Health check URL: ${url}`);
+
+  const response = await api.get(url);
+
+  // HTTP status must be OK
+  expect(response.status()).toBe(200);
+
+  // Payload should contain { status: 'ok' }
+  const json = await response.json();
+  expect(json).toHaveProperty('status', 'ok');
+
+  // Dispose the API context (good hygiene)
+  await api.dispose();
+});
 
 test('TC-002: Valid certificate but unreachable ACS URL should redirect to 502 Error Page', async ({ page }) => {
 
