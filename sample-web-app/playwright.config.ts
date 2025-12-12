@@ -25,12 +25,12 @@ export default defineConfig({
       port: 8000,
       timeout: 180000,
       reuseExistingServer: true
-    // },
-    // {
-    //   command: 'npm run start --prefix ./../client-web-app',
-    //   port: 7000,
-    //   timeout: 180000,
-    //   reuseExistingServer: true
+    },
+    {
+      command: 'npm run start --prefix ./../client-web-app',
+      port: 7000,
+      timeout: 180000,
+      reuseExistingServer: true
     }
   ],
   use: {
