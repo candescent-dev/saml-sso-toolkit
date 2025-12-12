@@ -19,7 +19,7 @@ import {
 } from '@nestjs/common';
 
 const SAML_ISSUER: string = 'Candescent';
-const CACHE_JSON_PATH = '../../../../cache.json';
+const CACHE_JSON_PATH = '../cache.json';
 const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 
 /**
@@ -32,7 +32,7 @@ interface BuiltSamlParts {
 
 @Injectable()
 export class SamlService {
-  private readonly cacheJsonPath = resolve(__dirname, CACHE_JSON_PATH);
+  private readonly cacheJsonPath = resolve(process.cwd(), CACHE_JSON_PATH);
   private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
   private readonly TTL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -124,13 +124,13 @@ export class SamlService {
             'saml:SubjectConfirmation': {
               '@Method': 'urn:oasis:names:tc:SAML:2.0:cm:bearer',
               'saml:SubjectConfirmationData': {
-                '@NotOnOrAfter': new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+                '@NotOnOrAfter': new Date(Date.now() + 15 * 60 * 1000).toISOString(),
                 '@Recipient': acsUrl,
               },
             },
           },
           'saml:Conditions': {
-            '@NotOnOrAfter': new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+            '@NotOnOrAfter': new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             'saml:AudienceRestriction': {
               'saml:Audience': this.getAttributeValueOrDefault(
                 attributes.email,

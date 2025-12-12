@@ -5,7 +5,7 @@ import { AppModule } from './../src/app.module';
 import { APP_CONFIG } from '../src/appConfig/appConfig.provider';
 import { plainToInstance } from 'class-transformer';
 import { SamlRequestDto } from '../src/saml/dto/samlRequest.dto';
-import { validate } from 'class-validator';
+import { contains, validate } from 'class-validator';
 import nock from 'nock';
 import fs from 'fs';
 import path from 'path';
@@ -67,12 +67,20 @@ describe('SAML backend testcases (e2e)', () => {
       console.error('Beforeall failed:', e);
       throw e;
     }
-    /*
-    console.log('Mock client ACS endpoint');
-    nock(acsMockURI)
-      .post(validatorUri).query(true)
-      .reply(200, { success: true });
-    console.log('Mock client ACS endpoint successful');*/
+
+    if (readAcsUrlValue !== acsUrlMock) {
+      console.log('AcsUrl is different than in cache, pass the cache value in code', readAcsUrlValue);
+      console.log("if test cases are failing, check the acsurl value if it is correct");
+    } else if (readAcsUrlValue == acsUrlMock) {
+      console.log('Acs url is same as in cache', readAcsUrlValue);
+      console.log('Mock client ACS endpoint');
+      nock(acsMockURI)
+        .post(validatorUri).query(true)
+        .reply(200, { success: true });
+      console.log('Mock client ACS endpoint successful');
+    } else if (contains(readAcsUrlValue, acsMockURI)) {
+      console.log('ACS URL needs server to be up on port', acsMockURI);
+    }
   });
 
   afterAll(async () => {
@@ -136,7 +144,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   it('validate saml extracted values in response', async () => {
     const isoMinute = (d: Date) => d.toISOString().slice(0, 16);
-    const expectedDate = new Date(Date.now() + 5 * 60 * 1000);
+    const expectedDate = new Date(Date.now() + 15 * 60 * 1000);
     expect(samlExtracted.destination).toContain(acsUrlMock);
     expect(samlExtracted.issuerTop).toBe(issuerTopExpected);
     expect(samlExtracted.issuerAssertion).toBe(issuerTopExpected);
