@@ -7,7 +7,7 @@ import type { Cache } from 'cache-manager';
 import { HttpService } from '@nestjs/axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SamlRequestDto } from './dto/samlRequest.dto';
-import { AuthSettingData } from './types/authSetting.types';
+import { SamlSettingData } from './types/samlSetting.types';
 import { existsSync, writeFileSync, readFileSync } from 'fs';
 import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 import { ACSServerResponse, ACSServerData, SamlResult } from './types/saml.types';
@@ -33,7 +33,7 @@ interface BuiltSamlParts {
 @Injectable()
 export class SamlService {
   private readonly cacheJsonPath = resolve(process.cwd(), CACHE_JSON_PATH);
-  private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
+  private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
   private readonly TTL_MS = 15 * 60 * 1000; // 15 minutes
 
   constructor(
@@ -426,37 +426,37 @@ export class SamlService {
   }
 
   /**
-   * Stores saml settings in both cache and cache.json file
+   * Stores saml setting in both cache and cache.json file
    * @param acsUrl - The ACS endpoint URL provided by the SAML service provider
    * @throws NotFoundException If the cache.json file does not exist
    * @throws InternalServerErrorException If saving to the file or cache fails
    */
-  async saveAuthSetting(acsUrl: string): Promise<void> {
+  async saveSamlSetting(acsUrl: string): Promise<void> {
     if (!existsSync(this.cacheJsonPath)) {
       throw new NotFoundException(`cache.json not found at: ${this.cacheJsonPath}`);
     }
-    const authSettingData: AuthSettingData = {
+    const samlSettingData: SamlSettingData = {
       acsUrl,
       updatedAt: new Date().toISOString(),
     };
     // Save to file - for jest
     try {
-      writeFileSync(this.cacheJsonPath, JSON.stringify(authSettingData, null, 2), 'utf8');
+      writeFileSync(this.cacheJsonPath, JSON.stringify(samlSettingData, null, 2), 'utf8');
     } catch (error) {
-      throw new InternalServerErrorException('Failed to save saml settings');
+      throw new InternalServerErrorException('Failed to save saml setting');
     }
     // Save to cache
     try {
-      await this.cacheManager.set(this.AUTH_SETTING_CACHE_KEY, { acsUrl }, this.TTL_MS);
+      await this.cacheManager.set(this.SAML_SETTING_CACHE_KEY, { acsUrl }, this.TTL_MS);
     } catch (error) {
-      throw new InternalServerErrorException('Failed to save saml settings to cache');
+      throw new InternalServerErrorException('Failed to save saml setting to cache');
     }
   }
 
   /**
    * Retrieve cached saml setting, or undefined if expired.
    */
-  async getAuthSettingFromCache(): Promise<AuthSettingData | undefined> {
-    return await this.cacheManager.get<AuthSettingData>(this.AUTH_SETTING_CACHE_KEY);
+  async getSamlSettingFromCache(): Promise<SamlSettingData | undefined> {
+    return await this.cacheManager.get<SamlSettingData>(this.SAML_SETTING_CACHE_KEY);
   }
 }

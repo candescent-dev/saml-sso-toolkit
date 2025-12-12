@@ -1,6 +1,6 @@
-import { AuthSettingData } from '../../saml/types/authSetting.types';
+import { SamlSettingData } from '../../saml/types/samlSetting.types';
 
-export interface AppConfig extends AuthSettingData {
+export interface AppConfig extends SamlSettingData {
   frontendPort: number;
   backendPort: number;
 }

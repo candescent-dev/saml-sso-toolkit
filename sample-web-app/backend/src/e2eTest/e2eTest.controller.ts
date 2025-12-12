@@ -18,8 +18,8 @@ export class E2ETestController {
   async downloadE2EReports(@Res() res: Response) {
     try {
       // Retrieve cached saml setting
-      const authSetting = await this.e2eTestService.getAuthSettingFromCache();
-      if (!authSetting) {
+      const samlSetting = await this.e2eTestService.getSamlSettingFromCache();
+      if (!samlSetting) {
         // Throw NotFoundException if cache is empty
         throw new NotFoundException('Saml setting not found in cache or has expired');
       }

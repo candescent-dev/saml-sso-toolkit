@@ -15,8 +15,8 @@ export class PublishConfigController {
   async downloadConfig(@Res() res: Response): Promise<Response> {
     try {
       // Retrieve cached saml setting
-      const authSetting = await this.publishConfigService.getAuthSettingFromCache();
-      if (!authSetting) {
+      const samlSetting = await this.publishConfigService.getSamlSettingFromCache();
+      if (!samlSetting) {
         // Throw NotFoundException if cache is empty
         throw new NotFoundException('Saml setting not found in cache or has expired');
       }

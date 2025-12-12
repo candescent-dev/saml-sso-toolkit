@@ -1,4 +1,4 @@
-export interface AuthSettingData {
+export interface SamlSettingData {
   acsUrl: string;
   updatedAt: string;
 }

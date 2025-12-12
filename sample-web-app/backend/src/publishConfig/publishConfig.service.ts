@@ -3,7 +3,7 @@ import type { Cache } from 'cache-manager';
 import { existsSync, readFileSync } from 'fs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AppConfig } from './types/publishConfig.types';
-import { AuthSettingData } from '../saml/types/authSetting.types';
+import { SamlSettingData } from '../saml/types/samlSetting.types';
 import {
   Inject,
   Injectable,
@@ -18,15 +18,15 @@ const CACHE_JSON_PATH = '../../../../cache.json';
 export class PublishConfigService {
   private readonly appConfigPath = resolve(__dirname, APP_CONFIG_PATH);
   private readonly cacheJsonPath = resolve(__dirname, CACHE_JSON_PATH);
-  private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
+  private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
    * Retrieve cached saml setting, or undefined if expired.
    */
-  async getAuthSettingFromCache(): Promise<AuthSettingData | undefined> {
-    return await this.cacheManager.get<AuthSettingData>(this.AUTH_SETTING_CACHE_KEY);
+  async getSamlSettingFromCache(): Promise<SamlSettingData | undefined> {
+    return await this.cacheManager.get<SamlSettingData>(this.SAML_SETTING_CACHE_KEY);
   }
 
   /**
@@ -68,17 +68,17 @@ export class PublishConfigService {
   }
 
   /**
-   * Retrieves the authentication settings from cache.json
-   * @returns AuthSettingData The parsed AuthSettingData object
+   * Retrieves the saml setting from cache.json
+   * @returns SamlSettingData The parsed SamlSettingData object
    * @throws NotFoundException If cache.json is missing
    * @throws InternalServerErrorException If cache.json cannot be parsed or required fields are missing
    */
-  getAuthSetting(): AuthSettingData {
-    const authSettings = this.readJsonFile<AuthSettingData>(this.cacheJsonPath, 'cache.json');
-    if (!authSettings.acsUrl) {
+  getSamlSetting(): SamlSettingData {
+    const samlSetting = this.readJsonFile<SamlSettingData>(this.cacheJsonPath, 'cache.json');
+    if (!samlSetting.acsUrl) {
       throw new InternalServerErrorException('Missing acsUrl');
     }
-    return authSettings;
+    return samlSetting;
   }
 
   /**
@@ -89,9 +89,9 @@ export class PublishConfigService {
    */
   async getConfigFile(): Promise<Buffer> {
     const appConfig = this.getAppConfig();
-    const authSettings = this.getAuthSetting();
-    // Merge saml settings into app config
-    appConfig.acsUrl = authSettings.acsUrl;
+    const samlSetting = this.getSamlSetting();
+    // Merge saml setting into app config
+    appConfig.acsUrl = samlSetting.acsUrl;
     return Buffer.from(JSON.stringify(appConfig, null, 2));
   }
 }

@@ -1,7 +1,7 @@
 import { SamlService } from './saml.service';
 import { SamlResult } from './types/saml.types';
 import { SamlRequestDto } from './dto/samlRequest.dto';
-import { AuthSettingData } from './types/authSetting.types';
+import { SamlSettingData } from './types/samlSetting.types';
 import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 
 /**
@@ -17,15 +17,15 @@ export class SamlController {
    * @param samlRequestDto - validated request body with ACS URL, encryption key, and attributes
    * @returns success response with saml result or throws HttpException on error
    */
-  @Post("login")
+  @Post('login')
   async processSamlRequest(@Body() samlRequestDto: SamlRequestDto): Promise<SamlResult> {
     console.log('Received saml request', samlRequestDto);
     try {
       // Call service to process the SAML request
       const response: SamlResult =
         await this.samlService.generateAndSendSamlResponse(samlRequestDto);
-      // Storeing saml settings in both cache and cache.json file
-      await this.samlService.saveAuthSetting(samlRequestDto.acsUrl);
+      // Storeing saml setting in both cache and cache.json file
+      await this.samlService.saveSamlSetting(samlRequestDto.acsUrl);
       return response;
     } catch (error: any) {
       const message = error.message || 'SAML failed';
@@ -39,17 +39,17 @@ export class SamlController {
    * @returns The cached saml setting or a message if none exist or expired
    */
   @Get('saml-setting')
-  public async getAuthSetting(): Promise<{
+  public async getSamlSetting(): Promise<{
     message: string;
-    authSetting?: AuthSettingData;
+    samlSetting?: SamlSettingData;
   }> {
-    const authSetting = await this.samlService.getAuthSettingFromCache();
-    if (!authSetting) {
+    const samlSetting = await this.samlService.getSamlSettingFromCache();
+    if (!samlSetting) {
       return { message: 'No saml setting found or they have expired' };
     }
     return {
       message: 'Saml setting retrieved from cache',
-      authSetting,
+      samlSetting,
     };
   }
 }

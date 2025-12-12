@@ -7,21 +7,21 @@ import { existsSync, mkdtempSync, rmSync } from 'fs';
 import { Inject, Injectable } from '@nestjs/common';
 import { ServiceError } from './types/e2eTest.types';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { AuthSettingData } from '../saml/types/authSetting.types';
+import { SamlSettingData } from '../saml/types/samlSetting.types';
 
 type JestReporter = string | [string, Record<string, any>];
 
 @Injectable()
 export class E2ETestService {
-  private readonly AUTH_SETTING_CACHE_KEY = 'auth_setting';
+  private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
    * Retrieve cached saml setting, or undefined if expired.
    */
-  async getAuthSettingFromCache(): Promise<AuthSettingData | undefined> {
-    return await this.cacheManager.get<AuthSettingData>(this.AUTH_SETTING_CACHE_KEY);
+  async getSamlSettingFromCache(): Promise<SamlSettingData | undefined> {
+    return await this.cacheManager.get<SamlSettingData>(this.SAML_SETTING_CACHE_KEY);
   }
 
   /**
