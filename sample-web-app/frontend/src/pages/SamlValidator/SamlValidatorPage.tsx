@@ -101,7 +101,7 @@ const SamlValidatorPage: FC = () => {
 
   return (
     <>
-      <div className="home-container">
+      <div className="validator-container">
         {/* Header */}
         <div className="header-row">
           <h1>SAML Validator</h1>

@@ -132,7 +132,7 @@
   width: 100%;
 }
 
-.home-container {
+.validator-container {
   padding: var(--spacing-xl);
   margin: var(--spacing-xl) auto;
   max-width: var(--container-max-width);
@@ -367,7 +367,7 @@
     font-size: var(--font-size-md);
   }
 
-  .home-container {
+  .validator-container {
     padding: var(--spacing-md);
   }
 
