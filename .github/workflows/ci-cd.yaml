@@ -40,6 +40,10 @@ jobs:
         working-directory: sample-web-app/backend
         run: npm ci
  
+      - name: Install client-web-app dependencies
+        working-directory: client-web-app
+        run: npm ci
+
       - name: Build frontend
         working-directory: sample-web-app/frontend
         run: |
@@ -54,6 +58,13 @@ jobs:
           npm run build
           echo "Backend build complete."
  
+     - name: Build client-web-app backend
+        working-directory: client-web-app
+        run: |
+          echo "Building client-web-app backend..."
+          npm run build
+          echo "Backend client-web-app build complete."
+          
       - name: Run backend tests
         working-directory: sample-web-app/backend
         run: npm test
