@@ -6,9 +6,6 @@ import { test, expect, request } from '@playwright/test';
 import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl, validCertificate } from './pages/homePage';
 import { SimulatorPage } from './pages/simulatorPage';
 import { ErrorPage } from './pages/errorPage';
-import fs from 'fs';
-import { XMLParser } from 'fast-xml-parser';
-
 const ACSUrl = 'http://localhost:7000/api/saml-validator/acs';
 
 // -------------------------------
