@@ -13,7 +13,7 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { SamlValidatorConfig } from './types/samlValidator.types';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
-const CLOCK_SKEW_MS = 5 * 60 * 1000;
+const CLOCK_SKEW_MS = 15 * 60 * 1000;
 const PRIVATE_KEY_PATH = '../../certs/private.key';
 const PUBLIC_KEY_PATH = '../../certs/public.pem';
 

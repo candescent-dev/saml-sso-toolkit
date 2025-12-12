@@ -124,13 +124,13 @@ export class SamlService {
             'saml:SubjectConfirmation': {
               '@Method': 'urn:oasis:names:tc:SAML:2.0:cm:bearer',
               'saml:SubjectConfirmationData': {
-                '@NotOnOrAfter': new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+                '@NotOnOrAfter': new Date(Date.now() + 15 * 60 * 1000).toISOString(),
                 '@Recipient': acsUrl,
               },
             },
           },
           'saml:Conditions': {
-            '@NotOnOrAfter': new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+            '@NotOnOrAfter': new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             'saml:AudienceRestriction': {
               'saml:Audience': this.getAttributeValueOrDefault(
                 attributes.email,
