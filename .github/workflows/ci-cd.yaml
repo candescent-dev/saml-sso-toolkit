@@ -88,7 +88,7 @@ jobs:
       - name: Publish Test Summary
         uses: test-summary/action@v2
         with:
-          paths: sample-web-app/backend/test-results/junit/
+          paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
 
       - name: Install e2e dependencies (sample-web-app)
         working-directory: sample-web-app
