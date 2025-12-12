@@ -25,12 +25,18 @@ export default defineConfig({
       port: 8000,
       timeout: 180000,
       reuseExistingServer: true
+    },
+    {
+      command: 'npm run start --prefix ./../client-web-app',
+      port: 7000,
+      timeout: 180000,
+      reuseExistingServer: true
     }
   ],
   use: {
     baseURL: 'http://localhost:8000',
     acceptDownloads: true,
-    headless: true,
+    headless: this,
     permissions: ["clipboard-read", "clipboard-write"],
     launchOptions: {
     args: ["--disable-features=IsolateOrigins,site-per-process"],

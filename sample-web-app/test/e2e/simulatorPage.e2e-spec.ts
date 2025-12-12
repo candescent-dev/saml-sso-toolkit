@@ -7,6 +7,7 @@ import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl, validCertifi
 import { SimulatorPage } from './pages/simulatorPage';
 import { ErrorPage } from './pages/errorPage';
 
+
 // -------------------------------
 // TC-001: Backend health endpoint
 // -------------------------------
@@ -113,3 +114,102 @@ test('TC-004: User should return to Homepage when selecting Back to Home on Erro
   await expect(home.textACSUrl).toBeVisible();
   await expect(page).toHaveURL(frontendURL);
 });
+
+// -------------------------------------------------------
+// TC-005: Validate Simulation Successful message on simulator page
+// -------------------------------------------------------
+test('TC-005: Validate Simulation Successful message on simulator page', async ({ page }) => {
+  // Initialize the POM with the current Playwright Page instance
+  const home = new HomePage(page);
+  const simulator = new SimulatorPage(page);
+  // Navigate to the app (defaults to frontendURL if none provided)
+  await home.goto(frontendURL);
+
+  // ---------- Verify Homepage successfully visible ----------
+  await expect(home.textACSUrl).toBeVisible();
+  await expect(home.publicKey).toBeVisible();
+ 
+  // ---------Run Simulation with valid data ----------
+  await home.runSimulation(validACSUrl,validCertificate)
+
+  await expect(simulator.lblACSUrl).toBeVisible();
+
+  //-------Successful Simulation Text verification-----
+  await expect(simulator.headSuccessTitle).toHaveText('Simulation Successful');
+  await expect(simulator.lblSuccessMessage).toHaveText('SAML response successfully transmitted to the test endpoint URL.');
+  
+  //------verify ACS Url and Public Key values---------
+  await expect(simulator.txtACSUrl).toHaveValue(validACSUrl);
+  await expect(simulator.txtPublicKey).toHaveValue(validCertificate);
+});
+
+
+// -------------------------------------------------------
+// TC-006: Validate Back to Home link takes back to Homepage
+// -------------------------------------------------------
+test('TC-006: Validate Back to Home link takes back to Homepage', async ({ page }) => {
+  // Initialize the POM with the current Playwright Page instance
+  const home = new HomePage(page);
+  const simulator = new SimulatorPage(page);
+    
+  // Navigate to the app (defaults to frontendURL if none provided)
+  await home.goto(frontendURL);
+
+  // ---------- Verify Homepage successfully visible ----------
+  await expect(home.textACSUrl).toBeVisible();
+  await expect(home.publicKey).toBeVisible();
+ 
+  // ---------Run Simulation with valid data ----------
+  await home.runSimulation(validACSUrl,validCertificate);
+
+  await expect(simulator.lblACSUrl).toBeVisible();
+
+  //-------Successful Simulation Text verification-----
+  await expect(simulator.headSuccessTitle).toHaveText('Simulation Successful');
+  await expect(simulator.lblSuccessMessage).toHaveText('SAML response successfully transmitted to the test endpoint URL.');
+  
+  //-----go back to homepage and verify successful landing-------
+  await simulator.goToHomepage();
+  await expect(home.textACSUrlLbl).toBeVisible();
+});
+
+// -------------------------------------------------------
+// TC-007: Validate Re-run simulation button executes simulation again
+// -------------------------------------------------------
+test('TC-007: Validate Re-run simulation button executes simulation again', async ({ page }) => {
+  // Initialize the POM with the current Playwright Page instance
+  const home = new HomePage(page);
+  const simulator = new SimulatorPage(page);
+  // Navigate to the app (defaults to frontendURL if none provided)
+  await home.goto(frontendURL);
+
+  // ---------- Verify Homepage successfully visible ----------
+  await expect(home.textACSUrl).toBeVisible();
+  await expect(home.publicKey).toBeVisible();
+ 
+  // ---------Run Simulation with valid data ----------
+  await home.runSimulation(validACSUrl,validCertificate)
+
+  await expect(simulator.lblACSUrl).toBeVisible();
+
+  //-------Successful Simulation Text verification-----
+  await expect(simulator.headSuccessTitle).toHaveText('Simulation Successful');
+  await expect(simulator.lblSuccessMessage).toHaveText('SAML response successfully transmitted to the test endpoint URL.');
+  
+  // ---------- 🔎 Network Capture for Re-run Simulation ----------
+  const responsePromise = page.waitForResponse((res) =>
+    res.url().includes('/api/saml/login') && res.request().method() === 'POST'
+  );
+
+  await simulator.btnReRunSimulation.click();
+
+  const response = await responsePromise;
+
+  // ----------Assert success status on re-run and response contains xml----
+  expect(response.status()).toBe(201);
+
+  const json = await response.json();
+  expect(json).toHaveProperty('xml');
+
+});
+

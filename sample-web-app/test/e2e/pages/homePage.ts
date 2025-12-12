@@ -68,7 +68,7 @@ export class HomePage {
   }
   get textACSUrl(): Locator {
     return this.page.locator('//input[@id="acsUrl"]');
-  }
+  } 
   get textACSUrlLbl(): Locator {
     return this.page.locator(
       "//p[contains(text(),'Vendors can expect to receive the SAML response he')]"
@@ -80,4 +80,19 @@ export class HomePage {
     // Keeping a default makes test calls shorter: await home.goto();
     await this.page.goto(url);
   }
+
+  //Run simulation
+  async runSimulation(acsUrl: string, publicKey: string) {
+    await this.textACSUrl.waitFor({ state: 'visible' });
+    await this.textACSUrl.fill(acsUrl);
+
+    await this.publicKey.waitFor({ state: 'visible' });
+    await this.publicKey.fill(publicKey);
+
+    await Promise.all([
+      this.page.waitForLoadState('networkidle'),
+      this.runSimulationBtn.click()
+    ]);
+  }
 }
+
