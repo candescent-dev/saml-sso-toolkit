@@ -147,3 +147,45 @@ test('TC-010: Invalid ACS URL should show validation error', async ({ page }) =>
 });
 
 
+test('Run Simulation button works with valid ACS + certificate', async ({ page }) => {
+  const home = new HomePage(page);
+
+  console.log('➡ Opening Home Page');
+  await home.goto();
+
+  console.log('➡ Filling ACS URL + Certificate');
+  await home.textACSUrl.fill(validACSUrl);
+  await home.publicKey.fill(validCertificate);
+
+  console.log('➡ Clicking Run Simulation button');
+  await expect(home.runSimulationBtn).toBeEnabled();
+  await home.runSimulationBtn.click();
+
+  console.log('✅ Click action successful — no errors thrown');
+});
+
+test('Download Candescent Public Key works and file is .pem', async ({ page }) => {
+  const home = new HomePage(page);
+
+  console.log('➡ Opening Home Page');
+  await home.goto();
+
+  console.log('Waiting for file download');
+  const downloadPromise = page.waitForEvent('download');
+
+  console.log('➡ Clicking Candescent Public Key download button');
+  await home.publicKeyDwdBtn.click();
+
+  const download = await downloadPromise;
+  const fileName = download.suggestedFilename();
+
+  console.log('➡ Downloaded file:', fileName);
+
+  // Assert file exists
+  expect(fileName).not.toBeNull();
+
+  // Assert file is in .pem format
+  expect(fileName.toLowerCase()).toContain('.pem');
+
+  console.log('✅ Download test passed — .pem file downloaded successfully');
+});
