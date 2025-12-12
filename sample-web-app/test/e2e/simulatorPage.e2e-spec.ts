@@ -7,6 +7,7 @@ import { HomePage, backendUrl, frontendURL, healthURL, validACSUrl, validCertifi
 import { SimulatorPage } from './pages/simulatorPage';
 import { ErrorPage } from './pages/errorPage';
 
+const ACSUrl = 'http://localhost:7000/api/saml-validator/acs';
 
 // -------------------------------
 // TC-001: Backend health endpoint
@@ -130,8 +131,8 @@ test('TC-005: Validate Simulation Successful message on simulator page', async (
   await expect(home.publicKey).toBeVisible();
  
   // ---------Run Simulation with valid data ----------
-  await home.runSimulation(validACSUrl,validCertificate)
-
+  await home.runSimulation(ACSUrl,validCertificate)
+await page.waitForTimeout(3000);
   await expect(simulator.lblACSUrl).toBeVisible();
 
   //-------Successful Simulation Text verification-----
@@ -139,7 +140,7 @@ test('TC-005: Validate Simulation Successful message on simulator page', async (
   await expect(simulator.lblSuccessMessage).toHaveText('SAML response successfully transmitted to the test endpoint URL.');
   
   //------verify ACS Url and Public Key values---------
-  await expect(simulator.txtACSUrl).toHaveValue(validACSUrl);
+  await expect(simulator.txtACSUrl).toHaveValue(ACSUrl);
   await expect(simulator.txtPublicKey).toHaveValue(validCertificate);
 });
 
@@ -160,7 +161,7 @@ test('TC-006: Validate Back to Home link takes back to Homepage', async ({ page 
   await expect(home.publicKey).toBeVisible();
  
   // ---------Run Simulation with valid data ----------
-  await home.runSimulation(validACSUrl,validCertificate);
+  await home.runSimulation(ACSUrl,validCertificate);
 
   await expect(simulator.lblACSUrl).toBeVisible();
 
@@ -182,13 +183,13 @@ test('TC-007: Validate Re-run simulation button executes simulation again', asyn
   const simulator = new SimulatorPage(page);
   // Navigate to the app (defaults to frontendURL if none provided)
   await home.goto(frontendURL);
-
+await page.waitForTimeout(3000);
   // ---------- Verify Homepage successfully visible ----------
   await expect(home.textACSUrl).toBeVisible();
   await expect(home.publicKey).toBeVisible();
  
   // ---------Run Simulation with valid data ----------
-  await home.runSimulation(validACSUrl,validCertificate)
+  await home.runSimulation(ACSUrl,validCertificate)
 
   await expect(simulator.lblACSUrl).toBeVisible();
 
