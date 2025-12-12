@@ -77,18 +77,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-e2e-junit
-          path: sample-web-app/backend/test-results/junit/jest-e2e.xml
+          path: sample-web-app/backend/test-results/junit/
 
       - name: Upload e2e HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: backend-e2e-html
-          path: sample-web-app/backend/test-results/html/e2e-report.html
+          path: sample-web-app/backend/test-results/html/
 
       - name: Publish Test Summary
         uses: test-summary/action@v2
         with:
-          paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
+          paths: sample-web-app/backend/test-results/junit/
 
       - name: Install e2e dependencies (sample-web-app)
         working-directory: sample-web-app

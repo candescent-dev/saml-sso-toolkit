@@ -8,9 +8,13 @@
       }
     ],
     [
-      "jest-html-reporter",
+      "jest-html-reporters",
       {
-        "outputPath": "test-results/html/e2e-report.html",
+        "publicPath": "test-results/html",
+        "filename": "e2e-report.html",
+        "inlineSource": true,
+        "expand": true,
+        "includeConsoleLog": true,
         "includeFailureMsg": true,
         "includeSuiteFailure": true
       }
