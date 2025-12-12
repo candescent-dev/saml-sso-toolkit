@@ -10,6 +10,7 @@ import nock from 'nock';
 import fs from 'fs';
 import path from 'path';
 import { extractSamlFields } from './samlparser';
+import { readAcsUrl } from '../test/cacheutils';
 
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
@@ -25,9 +26,10 @@ describe('SAML backend testcases (e2e)', () => {
   const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
   const validCertificate = fs.readFileSync(certPath, 'utf8');
   const issuerTopExpected = 'Candescent';
+  const readAcsUrlValue = readAcsUrl();
 
   payload = {
-    acsUrl: acsUrlMock,
+    acsUrl: readAcsUrlValue,
     publicCertificate: validCertificate,
     attributes: {
       firstName: 'John',
@@ -65,11 +67,12 @@ describe('SAML backend testcases (e2e)', () => {
       console.error('Beforeall failed:', e);
       throw e;
     }
+    /*
     console.log('Mock client ACS endpoint');
     nock(acsMockURI)
       .post(validatorUri).query(true)
       .reply(200, { success: true });
-    console.log('Mock client ACS endpoint successful');
+    console.log('Mock client ACS endpoint successful');*/
   });
 
   afterAll(async () => {
@@ -90,7 +93,7 @@ describe('SAML backend testcases (e2e)', () => {
   });
 
   it('validate success true message and attributes on saml/login API response', async () => {
-    const res = await agent.post(samlLoginApi).set('Content-Type', 'application/json')
+    const res = await agent.post(samlLoginApi)
       .send(payload).catch((err: any) => {
         console.error('Supertest Error:', err.res?.text || err);
         throw err;
@@ -104,7 +107,7 @@ describe('SAML backend testcases (e2e)', () => {
     xml = res.body.xml;
     samlExtracted = extractSamlFields(xml);
     console.log('xml is -> ', res.body);
-  }, 4000);
+  }, 40000);
 
   it('validate saml xml values in saml/login API response', async () => {
     expect(xml).toContain('<samlp:Response');
