@@ -1,12 +1,12 @@
 import React, { FC } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
 import errorIcon from '../../assets/error.svg';
 import codeIcon from '../../assets/code.svg';
 import vectorIcon from '../../assets/vector.svg';
-import arrowTopIcon from '../../assets/arrowTop.svg';
+import { ROUTES } from '../../constants/AppRoutes';
+import { HomeInputState } from '../../features/home/types';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { initiateSamlLogin } from '../../features/home/homeSlice';
-import { HomeInputState } from '../../features/home/types';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './ErrorPage.css';
 
 const ErrorPage: FC = () => {
@@ -27,7 +27,7 @@ const ErrorPage: FC = () => {
     // Check if we have the required data from Redux
     if (!acsUrl || !publicCertificate) {
       // If no data available, navigate to home page
-      navigate('/');
+      navigate(ROUTES.HOME);
       return;
     }
     // Build payload from Redux store data
@@ -41,13 +41,13 @@ const ErrorPage: FC = () => {
       const resultAction = await dispatch(initiateSamlLogin(payload));
       // Handle success / error cases
       if (initiateSamlLogin.fulfilled.match(resultAction)) {
-        navigate('/success');
+        navigate(ROUTES.SUCCESS);
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Stay on error page with updated error info
         const errorPayload = resultAction.payload || {
           errorReason: 'Simulation failed. Please try again.',
         };
-        navigate('/error', {
+        navigate(ROUTES.ERROR, {
           state: {
             errorCode: errorPayload.errorCode || '',
             errorReason: errorPayload.errorReason || '',
@@ -57,10 +57,6 @@ const ErrorPage: FC = () => {
     } catch (error) {
       console.error('Error retrying simulation:', error);
     }
-  };
-
-  const handleSAMLValidatorClick = () => {
-    navigate('/samlValidator');
   };
 
   return (
@@ -74,11 +70,6 @@ const ErrorPage: FC = () => {
             <h1 className="error-title">Transmission failed!</h1>
             <p className="error-submessage">SAML response transmission has failed.</p>
           </div>
-        </div>
-        {/* SAML Validator Link */}
-        <div onClick={handleSAMLValidatorClick} className="header-label-row">
-          <label className="link-label">SAML Validator</label>
-          <img src={arrowTopIcon} className="link-icon" alt="SAML Validator" loading="lazy" />
         </div>
         {/* Error Code */}
         <div className="error-content">

@@ -1,13 +1,14 @@
 import React, { FC } from 'react';
 import oopsImg from '../../assets/error404.svg';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants/AppRoutes';
 import './PageNotFoundPage.css';
 
 const PageNotFound: FC = () => {
   const navigate = useNavigate();
 
   const handleBackClick = () => {
-    navigate('/');
+    navigate(ROUTES.HOME);
   };
 
   return (

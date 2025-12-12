@@ -199,26 +199,6 @@
   line-height: 1.5;
 }
 
-.link-label {
-  color: var(--color-primary);
-  font-size: var(--font-size-xl);
-  cursor: pointer;
-}
-
-.link-icon {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  object-fit: contain;
-  vertical-align: middle;
-}
-
-.header-label-row {
-  top: 4.0625rem;
-  right: 0.625rem;
-  margin: 0.625rem;
-  position: absolute;
-}
-
 .error-content {
   display: flex;
   flex-direction: column;
@@ -474,15 +454,6 @@
 
 /* Small Devices (Phones < 600px / 37.5rem) */
 @media (max-width: 37.5rem) {
-  .header-label-row {
-    display: flex;
-    position: unset;
-    flex-direction: row;
-    align-self: center;
-    align-content: center;
-    align-items: center;
-  }
-
   .error-page {
     padding: 0.75rem 1rem;
   }
@@ -552,15 +523,6 @@
 
 /* Medium Devices (Tablets: 600px–767px / 37.5rem–47.99rem) */
 @media (min-width: 37.5rem) and (max-width: 47.99rem) {
-  .header-label-row {
-    display: flex;
-    position: unset;
-    flex-direction: row;
-    align-self: center;
-    align-content: center;
-    align-items: center;
-  }
-
   .error-page {
     padding: 1.25rem;
     display: flex;

@@ -4,6 +4,7 @@ import downloadIcon from '../../assets/download.svg';
 import greenTickIcon from '../../assets/green-tick.svg';
 import linkIcon from '../../assets/link.svg';
 import shieldIcon from '../../assets/shield.svg';
+import { ROUTES } from '../../constants/AppRoutes';
 import arrowTopIcon from '../../assets/arrowTop.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { initiateSamlLogin } from '../../features/home/homeSlice';
@@ -35,7 +36,7 @@ const SuccessPage: FC = () => {
     // Check if we have the required data from Redux
     if (!acsUrl || !publicCertificate) {
       // If no data available, navigate to home page
-      navigate('/');
+      navigate(ROUTES.HOME);
       return;
     }
     // Build payload from Redux store data
@@ -49,13 +50,13 @@ const SuccessPage: FC = () => {
       const resultAction = await dispatch(initiateSamlLogin(payload));
       // Handle success / error cases
       if (initiateSamlLogin.fulfilled.match(resultAction)) {
-        navigate('/success');
+        navigate(ROUTES.SUCCESS);
       } else if (initiateSamlLogin.rejected.match(resultAction)) {
         // Navigate to error page with error info
         const errorPayload = resultAction.payload || {
           errorReason: 'Simulation failed. Please try again.',
         };
-        navigate('/error', {
+        navigate(ROUTES.ERROR, {
           state: {
             errorCode: errorPayload.errorCode || '',
             errorReason: errorPayload.errorReason || '',
@@ -96,7 +97,7 @@ const SuccessPage: FC = () => {
   };
 
   const handleSAMLValidatorClick = () => {
-    navigate('/samlValidator');
+    navigate(ROUTES.SAML_VALIDATOR);
   };
 
   return (

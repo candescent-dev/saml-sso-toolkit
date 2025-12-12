@@ -7,9 +7,10 @@ import {
   setHomeInputState,
   initiateSamlLogin,
 } from '../../features/home/homeSlice';
-import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
-import { HomeInputState } from '../../features/home/types';
 import { getApi } from '../../services/api';
+import { ROUTES } from '../../constants/AppRoutes';
+import { HomeInputState } from '../../features/home/types';
+import { validatePublicCertificate, validateUrl } from '../../utils/helpers';
 import './HomePage.css';
 
 interface FieldErrors {
@@ -125,10 +126,10 @@ const HomePage: FC = () => {
     const resultAction = await dispatch(initiateSamlLogin(payload));
     // Handle success / error cases
     if (initiateSamlLogin.fulfilled.match(resultAction)) {
-      navigate('/success');
+      navigate(ROUTES.SUCCESS);
     } else if (initiateSamlLogin.rejected.match(resultAction)) {
       const errorPayload = resultAction.payload || { errorReason: 'Unknown error occurred' };
-      navigate('/error', {
+      navigate(ROUTES.ERROR, {
         state: {
           errorCode: errorPayload.errorCode || '',
           errorReason: errorPayload.errorReason || '',

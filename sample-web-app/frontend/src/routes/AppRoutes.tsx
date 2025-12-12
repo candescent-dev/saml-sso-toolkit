@@ -1,5 +1,6 @@
 import React, { FC, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ROUTES } from '../constants/AppRoutes';
 // Eagerly loaded Header Component
 import Header from '../components/Header/Header';
 // Lazy-loaded pages
@@ -8,14 +9,6 @@ const SuccessPage = lazy(() => import('../pages/Success/SuccessPage'));
 const ErrorPage = lazy(() => import('../pages/Error/ErrorPage'));
 const PageNotFound = lazy(() => import('../pages/PageNotFound/PageNotFoundPage'));
 const SamlValidatorPage = lazy(() => import('../pages/SamlValidator/SamlValidatorPage'));
-
-// Route paths (type-safe)
-const ROUTES = {
-  HOME: '/',
-  SUCCESS: '/success',
-  ERROR: '/error',
-  SAML_VALIDATOR: '/samlValidator',
-} as const;
 
 // Fallback skeleton while page loads
 const PageLoader: FC = () => <div className="loader">Loading Page......</div>;
