@@ -4,6 +4,6 @@
     "rootDir": ".",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "__tests__/**/*.ts", "**/*.e2e-spec.ts"],
+  "exclude": ["node_modules", "dist"]
 }

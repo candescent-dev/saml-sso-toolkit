@@ -1,16 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import nock from 'nock';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
-import { APP_CONFIG } from '../src/appConfig/appConfig.provider';
-import { plainToInstance } from 'class-transformer';
-import { SamlRequestDto } from '../src/saml/dto/samlRequest.dto';
-import { contains, validate } from 'class-validator';
-import nock from 'nock';
-import fs from 'fs';
-import path from 'path';
 import { extractSamlFields } from './samlparser';
-import { readAcsUrl } from '../test/cacheutils';
+import { INestApplication } from '@nestjs/common';
+import { readSamlConfig } from '../test/cacheutils';
+import { plainToInstance } from 'class-transformer';
+import { contains, validate } from 'class-validator';
+import { Test, TestingModule } from '@nestjs/testing';
+import { SamlRequestDto } from '../src/saml/dto/samlRequest.dto';
+import { APP_CONFIG } from '../src/appConfig/appConfig.provider';
+
+const { acsUrl, publicCertificate } = readSamlConfig();
 
 describe('SAML backend testcases (e2e)', () => {
   let app: INestApplication;
@@ -23,14 +23,12 @@ describe('SAML backend testcases (e2e)', () => {
   const acsMockURI = 'http://localhost:7000';
   const validatorUri = '/api/saml-validator/acs';
   const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
-  const certPath = path.join(__dirname, '../../../client-web-app/certs/public.crt');
-  const validCertificate = fs.readFileSync(certPath, 'utf8');
   const issuerTopExpected = 'Candescent';
-  const readAcsUrlValue = readAcsUrl();
+  const readAcsUrlValue = acsUrl;
 
   payload = {
     acsUrl: readAcsUrlValue,
-    publicCertificate: validCertificate,
+    publicCertificate,
     attributes: {
       firstName: 'John',
       lastName: 'Doe',
@@ -45,7 +43,6 @@ describe('SAML backend testcases (e2e)', () => {
   const reqCertificate = payload.publicCertificate;
   const mailID = payload.attributes.email;
   const reqAcsUrl = payload.acsUrl;
-
 
   beforeAll(async () => {
     try {
@@ -69,14 +66,15 @@ describe('SAML backend testcases (e2e)', () => {
     }
 
     if (readAcsUrlValue !== acsUrlMock) {
-      console.log('AcsUrl is different than in cache, pass the cache value in code', readAcsUrlValue);
-      console.log("if test cases are failing, check the acsurl value if it is correct");
+      console.log(
+        'AcsUrl is different than in cache, pass the cache value in code',
+        readAcsUrlValue,
+      );
+      console.log('if test cases are failing, check the acsurl value if it is correct');
     } else if (readAcsUrlValue == acsUrlMock) {
       console.log('Acs url is same as in cache', readAcsUrlValue);
       console.log('Mock client ACS endpoint');
-      nock(acsMockURI)
-        .post(validatorUri).query(true)
-        .reply(200, { success: true });
+      nock(acsMockURI).post(validatorUri).query(true).reply(200, { success: true });
       console.log('Mock client ACS endpoint successful');
     } else if (contains(readAcsUrlValue, acsMockURI)) {
       console.log('ACS URL needs server to be up on port', acsMockURI);
@@ -101,8 +99,10 @@ describe('SAML backend testcases (e2e)', () => {
   });
 
   it('validate success true message and attributes on saml/login API response', async () => {
-    const res = await agent.post(samlLoginApi)
-      .send(payload).catch((err: any) => {
+    const res = await agent
+      .post(samlLoginApi)
+      .send(payload)
+      .catch((err: any) => {
         console.error('Supertest Error:', err.res?.text || err);
         throw err;
       });
@@ -129,8 +129,11 @@ describe('SAML backend testcases (e2e)', () => {
     expect(xml).toContain('<saml:NameID>' + memId + '</saml:NameID>');
     expect(xml).toContain(
       '    <saml:AudienceRestriction>\n' +
-      '        <saml:Audience>' + mailID + '</saml:Audience>\n' +
-      '      </saml:AudienceRestriction>');
+        '        <saml:Audience>' +
+        mailID +
+        '</saml:Audience>\n' +
+        '      </saml:AudienceRestriction>',
+    );
     expect(xml).toContain('<saml:Attribute Name="firstName">');
     expect(xml).toContain('<saml:AttributeValue>' + fname + '</saml:AttributeValue>');
     expect(xml).toContain('<saml:Attribute Name="lastName">');
@@ -140,7 +143,6 @@ describe('SAML backend testcases (e2e)', () => {
     expect(xml).toContain('<saml:Attribute Name="memberId">');
     expect(xml).toContain('<saml:AttributeValue>' + memId + '</saml:AttributeValue>');
   }, 4000);
-
 
   it('validate saml extracted values in response', async () => {
     const isoMinute = (d: Date) => d.toISOString().slice(0, 16);
@@ -159,17 +161,16 @@ describe('SAML backend testcases (e2e)', () => {
     expect(samlExtracted.attributes.memberId).toBe(memId);
   }, 4000);
 
-  it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same response', async () => {
-  }, 4000);
+  it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same response', async () => {}, 4000);
 
   function extractAttributeErrors(errors: any[]) {
-    const attrs = errors.find(e => e.property === 'attributes');
+    const attrs = errors.find((e) => e.property === 'attributes');
     if (!attrs || !attrs.children) return [];
 
-    return attrs.children.flatMap(child =>
-      Object.values(child.constraints ?? {}).map(msg =>
-        `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`
-      )
+    return attrs.children.flatMap((child) =>
+      Object.values(child.constraints ?? {}).map(
+        (msg) => `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`,
+      ),
     );
   }
 
@@ -177,8 +178,7 @@ describe('SAML backend testcases (e2e)', () => {
     const payload = {};
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
     expect(messages).toEqual(
       expect.arrayContaining([
         'acsUrl must be a URL address',
@@ -187,13 +187,13 @@ describe('SAML backend testcases (e2e)', () => {
         'publicCertificate should not be empty',
         'publicCertificate must be a string',
         'attributes should not be empty',
-      ])
+      ]),
     );
   });
 
   it('should fail when acsUrl is missing', async () => {
     const payload = {
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -203,8 +203,7 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
     expect(messages).toEqual(
       expect.arrayContaining([
         'acsUrl must be a URL address',
@@ -217,7 +216,7 @@ describe('SAML backend testcases (e2e)', () => {
   it('should fail when acsUrl is not VALID', async () => {
     const payload = {
       acsUrl: 1234,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -227,18 +226,15 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
 
-    expect(messages).toEqual(
-      expect.arrayContaining(['acsUrl must be a URL address']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['acsUrl must be a URL address']));
   });
 
   it('should fail when acsUrl is empty string', async () => {
     const payload = {
       acsUrl: '',
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -248,13 +244,9 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
     expect(messages).toEqual(
-      expect.arrayContaining([
-        'acsUrl must be a URL address',
-        'acsUrl should not be empty',
-      ]),
+      expect.arrayContaining(['acsUrl must be a URL address', 'acsUrl should not be empty']),
     );
   });
 
@@ -270,8 +262,7 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
     expect(messages).toEqual(
       expect.arrayContaining([
         'publicCertificate should not be empty',
@@ -283,7 +274,7 @@ describe('SAML backend testcases (e2e)', () => {
   it('should fail when publicCertificate is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: "",
+      publicCertificate: '',
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -293,43 +284,36 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = errors
-      .flatMap(e => Object.values(e.constraints ?? {}));
-    expect(messages).toEqual(
-      expect.arrayContaining([
-        'publicCertificate should not be empty',
-      ]),
-    );
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
+    expect(messages).toEqual(expect.arrayContaining(['publicCertificate should not be empty']));
   });
-
 
   it('should fail when all attributes are missing', async () => {
     const dto = plainToInstance(SamlRequestDto, {
-      acsUrl: "https://example.com",
-      publicCertificate: validCertificate,
-      attributes: {}
+      acsUrl: 'https://example.com',
+      publicCertificate,
+      attributes: {},
     });
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
     expect(messages).toEqual(
       expect.arrayContaining([
-        "attributes.firstName should not be empty",
-        "attributes.firstName must be a string",
-        "attributes.lastName should not be empty",
-        "attributes.lastName must be a string",
-        "attributes.memberId should not be empty",
-        "attributes.memberId must be a string",
-        "attributes.email should not be empty",
-        "attributes.email must be an email",
-      ])
+        'attributes.firstName should not be empty',
+        'attributes.firstName must be a string',
+        'attributes.lastName should not be empty',
+        'attributes.lastName must be a string',
+        'attributes.memberId should not be empty',
+        'attributes.memberId must be a string',
+        'attributes.email should not be empty',
+        'attributes.email must be an email',
+      ]),
     );
   });
-
 
   it('should fail when email is missing', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -339,15 +323,13 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.email should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.email should not be empty']));
   });
 
   it('should fail when email is invalid', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -358,15 +340,13 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.email must be an email']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.email must be an email']));
   });
 
   it('should fail when firstName is missing', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         lastName: 'Doe',
         memberId: 'AS83747TB',
@@ -376,15 +356,13 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.firstName should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.firstName should not be empty']));
   });
 
   it('should fail when lastName is missing', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         memberId: 'AS83747TB',
@@ -394,15 +372,13 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.lastName should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.lastName should not be empty']));
   });
 
   it('should fail when memberId is missing', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -423,7 +399,7 @@ describe('SAML backend testcases (e2e)', () => {
   it('should fail when firstname is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: '',
         lastName: 'Doe',
@@ -433,16 +409,14 @@ describe('SAML backend testcases (e2e)', () => {
     };
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
-    const messages = extractAttributeErrors(errors)
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.firstName should not be empty']),
-    );
+    const messages = extractAttributeErrors(errors);
+    expect(messages).toEqual(expect.arrayContaining(['attributes.firstName should not be empty']));
   });
 
   it('should fail when lastname is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: '',
@@ -453,15 +427,13 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.lastName should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.lastName should not be empty']));
   });
 
   it('should fail when email is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -472,14 +444,12 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.email should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.email should not be empty']));
   });
   it('should fail when memberId is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,
-      publicCertificate: validCertificate,
+      publicCertificate,
       attributes: {
         firstName: 'John',
         lastName: 'Doe',
@@ -490,10 +460,6 @@ describe('SAML backend testcases (e2e)', () => {
     const dto = plainToInstance(SamlRequestDto, payload);
     const errors = await validate(dto);
     const messages = extractAttributeErrors(errors);
-    expect(messages).toEqual(
-      expect.arrayContaining(['attributes.memberId should not be empty']),
-    );
+    expect(messages).toEqual(expect.arrayContaining(['attributes.memberId should not be empty']));
   });
-
-
 });

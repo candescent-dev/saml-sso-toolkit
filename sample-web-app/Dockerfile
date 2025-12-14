@@ -14,6 +14,7 @@ COPY --from=backend /app/backend /app/backend
 COPY --from=frontend /usr/share/nginx/html /app/frontend
 
 COPY config.json /app/config.json
+COPY cache.json /app/cache.json
 
 RUN npm install -g serve
 

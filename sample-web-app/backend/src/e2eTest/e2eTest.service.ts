@@ -14,6 +14,8 @@ type JestReporter = string | [string, Record<string, any>];
 @Injectable()
 export class E2ETestService {
   private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
+  // Absolute path where compiled backend exists in packaged ZIP / Docker runtime
+  private readonly PACKAGED_BACKEND_DIST_PATH = '/app/backend/dist';
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
@@ -23,11 +25,28 @@ export class E2ETestService {
   async getSamlSettingFromCache(): Promise<SamlSettingData | undefined> {
     return await this.cacheManager.get<SamlSettingData>(this.SAML_SETTING_CACHE_KEY);
   }
+  /**
+   * Determines whether the service is executing from a packaged (ZIP / Docker) backend runtime
+   * @returns true if running from compiled backend output
+   */
+  private isPackagedBackendRuntime(): boolean {
+    return existsSync(this.PACKAGED_BACKEND_DIST_PATH);
+  }
+
+  /**
+   * Resolves the appropriate Jest root directory based on the current runtime layout
+   * - Local / CI: project root (.)
+   * - Packaged ZIP / Docker: compiled backend directory
+   * @returns Jest rootDir value
+   */
+  private getJestRootDirectory(): string {
+    return this.isPackagedBackendRuntime() ? this.PACKAGED_BACKEND_DIST_PATH : '.';
+  }
 
   /**
    * Executes Jest E2E tests and returns a zip buffer containing HTML & XML reports
-   * @return {Promise<Buffer>} Zip file buffer containing generated reports
-   * @throws {ServiceError} If tests fail or reports are not generated
+   * @return Zip file buffer containing generated reports
+   * @throws If tests fail or reports are not generated
    */
   async runE2ETestsAndZip(): Promise<Buffer> {
     const tempReportDir = mkdtempSync(join(os.tmpdir(), 'e2e-reports-'));
@@ -48,15 +67,20 @@ export class E2ETestService {
           },
         ],
       ];
-      /** Inline Jest configuration (to avoid jest-e2e.json file reading) */
+      const isPackagedBackendRuntime = this.isPackagedBackendRuntime();
+      const jestRootDir = this.getJestRootDirectory();
+      /**
+       * Inline Jest configuration to avoid filesystem-based config
+       * resolution differences across runtime layouts.
+       */
       const jestConfig = {
         moduleFileExtensions: ['js', 'json', 'ts'],
-        rootDir: '.',
+        rootDir: jestRootDir,
         testEnvironment: 'node',
-        testRegex: '.e2e-spec.ts$',
-        transform: {
-          '^.+\\.(t|j)s$': 'ts-jest',
-        },
+        testRegex: '.e2e-spec.(ts|js)$',
+        transform: isPackagedBackendRuntime
+          ? {} // Compiled JS only (ZIP / Docker)
+          : { '^.+\\.(t|j)s$': 'ts-jest' }, // Local / CI
         reporters,
       };
       /** Execute Jest tests */
@@ -84,47 +108,36 @@ export class E2ETestService {
   }
 
   /**
-   * Creates a zip buffer containing the provided files
-   * @param {string[]} filePaths - Absolute paths to files to include in zip
-   * @return {Promise<Buffer>} Buffer of zipped files
+   * Creates a ZIP archive buffer containing all files and subdirectories from the provided directory path
+   * @param dirPath - Absolute path to the directory to be archived
+   * @returns Promise resolving to a ZIP file buffer
+   * @throws If the directory does not exist or archiving fails
    */
-  private createZipBuffer(filePaths: string[]): Promise<Buffer> {
+  private createZipBufferFromDir(dirPath: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      const chunks: Buffer[] = [];
-      archive.on('data', (chunk: Buffer) => chunks.push(chunk));
-      archive.on('end', () => resolve(Buffer.concat(chunks)));
-      archive.on('error', (err: Error) => reject(err));
-      filePaths.forEach((file) => archive.file(file, { name: basename(file) }));
-      archive.finalize();
+      try {
+        if (!existsSync(dirPath)) {
+          return reject(new Error(`Report directory not found: ${dirPath}`));
+        }
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        const chunks: Buffer[] = [];
+        // accumulate zip binary data into memory
+        archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+        archive.on('end', () => resolve(Buffer.concat(chunks)));
+        archive.on('error', (err: Error) => reject(err));
+        // add the whole directory contents into the archive root
+        archive.directory(dirPath, false);
+        // finalize the archive (starts writing)
+        archive.finalize();
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
-    private createZipBufferFromDir(dirPath: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!existsSync(dirPath)) {
-        return reject(new Error(`Report directory not found: ${dirPath}`));
-      }
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      const chunks: Buffer[] = [];
-      // accumulate zip binary data into memory
-      archive.on('data', (chunk: Buffer) => chunks.push(chunk));
-      archive.on('end', () => resolve(Buffer.concat(chunks)));
-      archive.on('error', (err: Error) => reject(err));
-      // add the whole directory contents into the archive root
-      archive.directory(dirPath, false);
-      // finalize the archive (starts writing)
-      archive.finalize();
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
   /**
    * Deletes a temporary folder safely
-   * @param {string} folderPath - Path to folder to remove
+   * @param folderPath - Path to folder to remove
    */
   private cleanupTempFolder(folderPath: string): void {
     try {
@@ -136,9 +149,9 @@ export class E2ETestService {
 
   /**
    * Throws a structured service error
-   * @param {string} message - Error message
-   * @param {number} status - HTTP status code (default: 400)
-   * @throws {ServiceError}
+   * @param message - Error message
+   * @param status - HTTP status code (default: 400)
+   * @throws ServiceError
    */
   private throwServiceError(message: string, status = 500): never {
     throw { message, status } as ServiceError;

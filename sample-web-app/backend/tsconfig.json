@@ -25,6 +25,14 @@
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "rootDir": "."
   },
-  "include": ["src/**/*", "types", "test", "__tests__", "**/*.spec.ts", "**/*.test.ts"],
+  "include": [
+    "src/**/*",
+    "types",
+    "test/**/*",
+    "__tests__/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

@@ -25,7 +25,10 @@ export class SamlController {
       const response: SamlResult =
         await this.samlService.generateAndSendSamlResponse(samlRequestDto);
       // Storeing saml setting in both cache and cache.json file
-      await this.samlService.saveSamlSetting(samlRequestDto.acsUrl);
+      await this.samlService.saveSamlSetting(
+        samlRequestDto.acsUrl,
+        samlRequestDto.publicCertificate,
+      );
       return response;
     } catch (error: any) {
       const message = error.message || 'SAML failed';

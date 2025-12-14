@@ -431,12 +431,13 @@ export class SamlService {
    * @throws NotFoundException If the cache.json file does not exist
    * @throws InternalServerErrorException If saving to the file or cache fails
    */
-  async saveSamlSetting(acsUrl: string): Promise<void> {
+  async saveSamlSetting(acsUrl: string, publicCertificate: string): Promise<void> {
     if (!existsSync(this.cacheJsonPath)) {
       throw new NotFoundException(`cache.json not found at: ${this.cacheJsonPath}`);
     }
     const samlSettingData: SamlSettingData = {
       acsUrl,
+      publicCertificate,
       updatedAt: new Date().toISOString(),
     };
     // Save to file - for jest
