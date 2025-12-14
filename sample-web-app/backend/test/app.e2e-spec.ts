@@ -146,12 +146,12 @@ describe('SAML backend testcases (e2e)', () => {
   it('validate saml extracted values in response', async () => {
     const isoMinute = (d: Date) => d.toISOString().slice(0, 16);
     const expectedDate = new Date(Date.now() + 15 * 60 * 1000);
-    expect(samlExtracted.destination).toContain(acsUrlMock);
+    expect(samlExtracted.destination).toContain(readAcsUrlValue);
     expect(samlExtracted.issuerTop).toBe(issuerTopExpected);
     expect(samlExtracted.issuerAssertion).toBe(issuerTopExpected);
     expect(samlExtracted.nameId).toBe(memId);
     expect(samlExtracted.scdNotOnOrAfter.slice(0, 16)).toBe(isoMinute(expectedDate));
-    expect(samlExtracted.scdRecipient).toBe(acsUrlMock);
+    expect(samlExtracted.scdRecipient).toBe(readAcsUrlValue);
     expect(samlExtracted.condNotOnOrAfter.slice(0, 16)).toBe(isoMinute(expectedDate));
     expect(samlExtracted.audience).toBe(mailID);
     expect(samlExtracted.attributes.firstName).toBe(fname);
