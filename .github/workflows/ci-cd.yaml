@@ -96,7 +96,7 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: sample-web-app
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium
 
       - name: Run frontend e2e tests
         working-directory: sample-web-app
