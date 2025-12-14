@@ -130,6 +130,7 @@ jobs:
           cp "$ROOT_DIR/sample-web-app/README.md" "$TMP_DIR/sample-web-app/" || true
           cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app" || warn "Dockerfile not found at $ROOT_DIR/sample-web-app"
           cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
+          cp "$ROOT_DIR/sample-web-app/cache.json" "$TMP_DIR/sample-web-app/cache.json" || warn "cache.json not found"
 
           # --- Scripts ---
           mkdir -p "$TMP_DIR/sample-web-app/scripts"

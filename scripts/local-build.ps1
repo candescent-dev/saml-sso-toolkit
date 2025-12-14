@@ -95,9 +95,10 @@ SafeCopyDir (Join-Path $ROOT_DIR "scripts/shell") $TMP_SCRIPTS_DIR "shell script
 # Copy main README.md
 SafeCopyFile (Join-Path $ROOT_DIR "sample-web-app/README.md") (Join-Path $TMP_DIR "sample-web-app/README.md") "Main README.md"
 
-# Copy Dockerfile and config.json
+# Copy Dockerfile & Json files
 SafeCopyFile (Join-Path $ROOT_DIR "sample-web-app/Dockerfile") (Join-Path $TMP_DIR "sample-web-app/Dockerfile") "Dockerfile"
 SafeCopyFile (Join-Path $ROOT_DIR "sample-web-app/config.json") (Join-Path $TMP_DIR "sample-web-app/config.json") "config.json"
+SafeCopyFile (Join-Path $ROOT_DIR "sample-web-app/cache.json") (Join-Path $TMP_DIR "sample-web-app/cache.json") "cache.json"
 
 # Copy root README.md
 SafeCopyFile (Join-Path $ROOT_DIR "README.md") (Join-Path $TMP_DIR "README.md") "Root README.md"
