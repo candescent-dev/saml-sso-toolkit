@@ -19,7 +19,7 @@ import {
 } from '@nestjs/common';
 
 const SAML_ISSUER: string = 'Candescent';
-const CACHE_JSON_PATH = '../cache.json';
+const CACHE_JSON_PATH = '../../../../cache.json';
 const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 
 /**
@@ -32,7 +32,7 @@ interface BuiltSamlParts {
 
 @Injectable()
 export class SamlService {
-  private readonly cacheJsonPath = resolve(process.cwd(), CACHE_JSON_PATH);
+  private readonly cacheJsonPath = resolve(__dirname, CACHE_JSON_PATH);
   private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
   private readonly TTL_MS = 15 * 60 * 1000; // 15 minutes
 
