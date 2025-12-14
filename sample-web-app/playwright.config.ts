@@ -13,6 +13,7 @@ export default defineConfig({
     '**/backend/node_modules/**',
     '**/*.spec.ts'            // ignore Jest/Nest unit tests
   ],
+  reporter: [['html', { open: 'never' }]], 
   webServer: [
     {
       command: 'npm run start --prefix ./backend',
