@@ -111,7 +111,6 @@ describe('SAML backend testcases (e2e)', () => {
     expect(res.body).toHaveProperty('publicCertificate', reqCertificate);
     expect(res.body).toHaveProperty('acsUrl', reqAcsUrl);
     expect(res.body).toHaveProperty('xml');
-
     xml = res.body.xml;
     samlExtracted = extractSamlFields(xml);
     console.log('xml is -> ', res.body);
