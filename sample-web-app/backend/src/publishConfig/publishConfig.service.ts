@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 
 const APP_CONFIG_PATH = '../../../../config.json';
-const CACHE_JSON_PATH = '../../../../cache.json';
+const CACHE_JSON_PATH = '../../../cache.json';
 
 @Injectable()
 export class PublishConfigService {

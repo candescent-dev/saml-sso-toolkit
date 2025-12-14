@@ -102,8 +102,9 @@ safe_copy_dir  "$ROOT_DIR/sample-web-app/frontend/build"                      "$
 safe_copy_file "$ROOT_DIR/sample-web-app/frontend/package.json"      "$TMP_DIR/sample-web-app/frontend/package.json"       "frontend package.json"
 
 # --- Copy backend files ---
-safe_copy_dir  "$ROOT_DIR/sample-web-app/backend/dist"                        "$TMP_DIR/sample-web-app/backend/"               "backend build files"
+safe_copy_dir  "$ROOT_DIR/sample-web-app/backend/dist"              "$TMP_DIR/sample-web-app/backend/"               "backend build files"
 safe_copy_file "$ROOT_DIR/sample-web-app/backend/package.json"      "$TMP_DIR/sample-web-app/backend/package.json"        "backend package.json"
+safe_copy_file "$ROOT_DIR/sample-web-app/backend/cache.json"        "$TMP_DIR/sample-web-app/backend/cache.json"       "backend cache.json"
 
 # Copy scripts
 safe_copy_dir  "$ROOT_DIR/scripts/shell"                        "$TMP_DIR/sample-web-app/scripts/"               "shell scripts"
@@ -115,7 +116,6 @@ cp "$ROOT_DIR/sample-web-app/README.md" "$TMP_DIR/sample-web-app/" || warn "Main
 # Copy Dockerfile & Json files
 cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app/" || warn "Dockerfile not found"
 cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
-cp "$ROOT_DIR/sample-web-app/cache.json" "$TMP_DIR/sample-web-app/cache.json" || warn "cache.json not found"
 
 # Copy main README.md
 cp "$ROOT_DIR/README.md" "$TMP_DIR/" || warn "Main README.md not found"

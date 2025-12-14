@@ -19,7 +19,8 @@ import {
 } from '@nestjs/common';
 
 const SAML_ISSUER: string = 'Candescent';
-const CACHE_JSON_PATH = '../cache.json';
+const LOCAL_CACHE_JSON_RELATIVE_PATH = 'cache.json';
+const ZIP_CACHE_JSON_RELATIVE_PATH = '../../../cache.json';
 const PRIVATE_KEY_PATH: string = '../../certs/private.pem';
 
 /**
@@ -32,7 +33,8 @@ interface BuiltSamlParts {
 
 @Injectable()
 export class SamlService {
-  private readonly cacheJsonPath = resolve(process.cwd(), CACHE_JSON_PATH);
+  private readonly loaclCacheJsonPath = resolve(process.cwd(), LOCAL_CACHE_JSON_RELATIVE_PATH);
+  private readonly zipCacheJsonPath = resolve(__dirname, ZIP_CACHE_JSON_RELATIVE_PATH);
   private readonly SAML_SETTING_CACHE_KEY = 'saml_setting';
   private readonly TTL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -432,24 +434,33 @@ export class SamlService {
    * @throws InternalServerErrorException If saving to the file or cache fails
    */
   async saveSamlSetting(acsUrl: string, publicCertificate: string): Promise<void> {
-    if (!existsSync(this.cacheJsonPath)) {
-      throw new NotFoundException(`cache.json not found at: ${this.cacheJsonPath}`);
-    }
     const samlSettingData: SamlSettingData = {
       acsUrl,
       publicCertificate,
       updatedAt: new Date().toISOString(),
     };
-    // Save to file - for jest
+    const targetPath = existsSync(this.loaclCacheJsonPath)
+      ? this.loaclCacheJsonPath
+      : existsSync(this.zipCacheJsonPath)
+        ? this.zipCacheJsonPath
+        : null;
+    if (!targetPath) {
+      throw new NotFoundException(
+        `cache.json not found in expected locations:\n` +
+          `- ${this.loaclCacheJsonPath}\n` +
+          `- ${this.zipCacheJsonPath}`,
+      );
+    }
+    // Save to file
     try {
-      writeFileSync(this.cacheJsonPath, JSON.stringify(samlSettingData, null, 2), 'utf8');
-    } catch (error) {
+      writeFileSync(targetPath, JSON.stringify(samlSettingData, null, 2), 'utf8');
+    } catch {
       throw new InternalServerErrorException('Failed to save saml setting');
     }
     // Save to cache
     try {
       await this.cacheManager.set(this.SAML_SETTING_CACHE_KEY, { acsUrl }, this.TTL_MS);
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Failed to save saml setting to cache');
     }
   }

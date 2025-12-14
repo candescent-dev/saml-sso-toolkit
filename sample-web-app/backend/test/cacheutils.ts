@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
-const LOCAL_CACHE_JSON_RELATIVE_PATH = '../../cache.json';
-const ZIP_CACHE_JSON_RELATIVE_PATH = '../../../cache.json';
+const LOCAL_CACHE_JSON_RELATIVE_PATH = '../cache.json';
+const ZIP_CACHE_JSON_RELATIVE_PATH = '../../cache.json';
 
 export interface AppConfig {
   acsUrl: string;
