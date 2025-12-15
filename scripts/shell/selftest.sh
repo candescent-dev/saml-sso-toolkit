@@ -107,9 +107,3 @@ log ""
 
 check_health "$FRONTEND_URL" "Frontend"
 check_health "$BACKEND_URL" "Backend"
-check_container_logs
-
-log ""
-success "All self-tests passed! Application is running correctly."
-log "Test Summary:"
-log " Container is running"
