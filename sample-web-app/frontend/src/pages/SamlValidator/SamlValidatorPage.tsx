@@ -108,7 +108,11 @@ const SamlValidatorPage: FC = () => {
         </div>
         <div className="divider" />
         {/* Run Validator Button */}
-        <button className="submit-btn" onClick={handleRunValidator} disabled={runValidatorLoading}>
+        <button
+          className="run-validator-btn"
+          onClick={handleRunValidator}
+          disabled={runValidatorLoading}
+        >
           {runValidatorLoading ? (
             <>
               Validating...

@@ -208,7 +208,7 @@
   align-self: center;
 }
 
-.submit-btn {
+.run-validator-btn {
   padding: var(--spacing-button);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-normal);
@@ -226,7 +226,7 @@
   align-self: center;
 }
 
-.submit-btn:disabled {
+.run-validator-btn:disabled {
   background-color: var(--color-disabled);
   color: var(--color-text-disabled);
   cursor: not-allowed;
@@ -342,7 +342,7 @@
     padding: var(--spacing-md) 0.9rem;
   }
 
-  .submit-btn,
+  .run-validator-btn,
   .green-btn {
     bottom: var(--spacing-mobile-button-margin);
     left: var(--spacing-mobile-button-margin);
@@ -378,7 +378,7 @@
     padding: 0.6rem var(--spacing-xl);
   }
 
-  .submit-btn,
+  .run-validator-btn,
   .green-btn {
     width: var(--button-width-md);
     font-size: var(--font-size-lg);
@@ -394,7 +394,7 @@
 
   .button-row,
   .green-btn,
-  .submit-btn {
+  .run-validator-btn {
     grid-column: span 2;
   }
 
@@ -409,7 +409,7 @@
     padding: 0.6rem var(--input-padding-horizontal-large);
   }
 
-  .submit-btn,
+  .run-validator-btn,
   .green-btn {
     justify-self: start;
     width: var(--button-width-xl);
@@ -427,7 +427,7 @@
     font-size: var(--font-size-xl);
   }
 
-  .submit-btn,
+  .run-validator-btn,
   .green-btn {
     font-size: var(--font-size-3xl);
   }
