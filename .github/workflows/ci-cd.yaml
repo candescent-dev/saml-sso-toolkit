@@ -137,10 +137,6 @@ jobs:
           cp -r "$ROOT_DIR/scripts/ps" "$TMP_DIR/sample-web-app/scripts/" || true
           cp -r "$ROOT_DIR/scripts/shell" "$TMP_DIR/sample-web-app/scripts/" || true
  
-          # --- Documentation ---
-          mkdir -p "$TMP_DIR/documentation"
-          cp -r "$ROOT_DIR/documentation/." "$TMP_DIR/documentation/" || true
- 
           # --- Root files ---
           cp "$ROOT_DIR/README.md" "$TMP_DIR/" || true
           echo "prepared zip structure [DONE]"

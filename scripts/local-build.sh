@@ -88,13 +88,12 @@ case "$TARGET" in
 esac
  
 # ---- Package additional resources ----
-log "Copying scripts, documentation, and Dockerfile..."
+log "Copying scripts, backend, frontend, and Dockerfile..."
  
 # Create the required directory structure
 mkdir -p "$TMP_DIR/sample-web-app/frontend"
 mkdir -p "$TMP_DIR/sample-web-app/backend"
 mkdir -p "$TMP_DIR/sample-web-app/scripts"
-mkdir -p "$TMP_DIR/documentation"
  
 # Copy sample-web-app build files only (from the built frontend/backend to sample-web-app structure)
 # --- Copy frontend files ---
@@ -119,15 +118,6 @@ cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" 
 
 # Copy main README.md
 cp "$ROOT_DIR/README.md" "$TMP_DIR/" || warn "Main README.md not found"
-
-# Copy documentation (excluding README.md to avoid duplication)
-if [ -d "$ROOT_DIR/documentation" ]; then
-  mkdir -p "$TMP_DIR/documentation"
-  # Copy all files except README.md
-  find "$ROOT_DIR/documentation" -type f ! -name "README.md" -exec cp {} "$TMP_DIR/documentation/" \; 2>/dev/null || true
-  log "Copied documentation files (excluding README.md)"
-fi
- 
 
 # ---- Check for Dockerfile before proceeding ----
 DOCKERFILE_PATH="$TMP_DIR/sample-web-app/Dockerfile"

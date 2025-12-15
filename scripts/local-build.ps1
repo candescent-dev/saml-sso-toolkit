@@ -73,12 +73,10 @@ Log "Copying scripts, documentation, and Dockerfile..."
 $TMP_FRONTEND_DIR = Join-Path $TMP_DIR "sample-web-app/frontend"
 $TMP_BACKEND_DIR  = Join-Path $TMP_DIR "sample-web-app/backend"
 $TMP_SCRIPTS_DIR  = Join-Path $TMP_DIR "sample-web-app/scripts"
-$TMP_DOC_DIR      = Join-Path $TMP_DIR "documentation"
 
 New-Item -ItemType Directory -Force -Path $TMP_FRONTEND_DIR | Out-Null
 New-Item -ItemType Directory -Force -Path $TMP_BACKEND_DIR  | Out-Null
 New-Item -ItemType Directory -Force -Path $TMP_SCRIPTS_DIR  | Out-Null
-New-Item -ItemType Directory -Force -Path $TMP_DOC_DIR      | Out-Null
 
 # Copy frontend files
 SafeCopyDir (Join-Path $ROOT_DIR "sample-web-app/frontend/build") $TMP_FRONTEND_DIR "frontend build files"
@@ -102,9 +100,6 @@ SafeCopyFile (Join-Path $ROOT_DIR "sample-web-app/config.json") (Join-Path $TMP_
 
 # Copy root README.md
 SafeCopyFile (Join-Path $ROOT_DIR "README.md") (Join-Path $TMP_DIR "README.md") "Root README.md"
-
-# Copy documentation
-SafeCopyDir (Join-Path $ROOT_DIR "documentation")  $TMP_DIR "Documentation copied "
 
 # ---- Check for Dockerfile before proceeding ----
 $DOCKERFILE_PATH = Join-Path $TMP_DIR "sample-web-app/Dockerfile"
