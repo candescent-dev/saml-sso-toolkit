@@ -1,15 +1,14 @@
 import React, { FC, useState, useEffect, useRef } from 'react';
-import downloadIcon from '../../assets/download.svg';
-import playIcon from '../../assets/playCircle.svg';
-import codeIcon from '../../assets/code.svg';
 import { getApi } from '../../services/api';
+import codeIcon from '../../assets/code.svg';
+import playIcon from '../../assets/playCircle.svg';
+import downloadIcon from '../../assets/download.svg';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import {
   fetchE2EReports,
   setPublishSamlSettingLoading,
   resetSamlValidatorState,
 } from '../../features/samlValidator/samlValidatorSlice';
-
 import './SamlValidatorPage.css';
 
 const SamlValidatorPage: FC = () => {
@@ -103,7 +102,7 @@ const SamlValidatorPage: FC = () => {
     <>
       <div className="validator-container">
         {/* Header */}
-        <div className="header-row">
+        <div className="validator-header-row">
           <h1>SAML Validator</h1>
           <p className="heading-message">Validate and publish your SAML configuration setting</p>
         </div>
@@ -189,14 +188,11 @@ const SamlValidatorPage: FC = () => {
             'Publish SAML Setting'
           )}
         </button>
-
-        <>
-          {!htmlFileUrl && !xmlFileUrl && (
-            <p className="description-message">
-              Complete validation to enable ‘Publish SAML Setting’
-            </p>
-          )}
-        </>
+        {!htmlFileUrl && !xmlFileUrl && (
+          <p className="description-message">
+            Complete validation to enable ‘Publish SAML Setting’
+          </p>
+        )}
       </div>
       {/* Download Message Toast */}
       {downloadMessage && (
