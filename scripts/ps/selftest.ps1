@@ -86,15 +86,3 @@ Log ""
 
 CheckHealth $FRONTEND_URL "Frontend"
 CheckHealth $BACKEND_URL "Backend"
-CheckContainerLogs
-
-Log ""
-Success "All self-tests passed! Application is running correctly."
-Log "Test Summary:"
-Log " Container is running"
-Log " Frontend is responding"
-Log " Backend is responding"
-Log " No critical errors in logs"
-Log ""
-Log " Frontend: $FRONTEND_URL"
-Log " Backend: $BACKEND_URL"
