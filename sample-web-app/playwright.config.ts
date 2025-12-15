@@ -29,7 +29,7 @@ export default defineConfig({
     },
     {
       command: 'npm run start --prefix ./../client-web-app',
-      port: 7000,
+      port: 7080,
       timeout: 180000,
       reuseExistingServer: true
     }

@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';;
 
-export async function startClientTestServer(port = 7000) {
+export async function startClientTestServer(port = 7080) {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
   await app.listen(port);

@@ -17,8 +17,8 @@ async function bootstrap() {
     }),
   );
 
-  // Start the application on port - 7000
-  await app.listen(7000);
-  console.log(`Server listening on http://localhost:7000`);
+  // Start the application on port - 7080
+  await app.listen(7080);
+  console.log(`Server listening on http://localhost:7080`);
 }
 bootstrap();

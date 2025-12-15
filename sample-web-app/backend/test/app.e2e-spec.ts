@@ -20,9 +20,9 @@ describe('SAML backend testcases (e2e)', () => {
   let samlExtracted: any;
 
   const samlLoginApi = '/saml/login';
-  const acsMockURI = 'http://localhost:7000';
+  const acsMockURI = 'http://localhost:7080';
   const validatorUri = '/api/saml-validator/acs';
-  const acsUrlMock = 'http://localhost:7000/api/saml-validator/acs';
+  const acsUrlMock = 'http://localhost:7080/api/saml-validator/acs';
   const issuerTopExpected = 'Candescent';
   const readAcsUrlValue = acsUrl;
 
