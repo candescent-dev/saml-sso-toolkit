@@ -128,7 +128,6 @@ jobs:
           cp "$ROOT_DIR/sample-web-app/backend/package.json"  "$TMP_DIR/sample-web-app/backend/"
           cp "$ROOT_DIR/sample-web-app/backend/cache.json"    "$TMP_DIR/sample-web-app/backend/cache.json"
  
-          cp "$ROOT_DIR/sample-web-app/README.md" "$TMP_DIR/sample-web-app/" || true
           cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app" || warn "Dockerfile not found at $ROOT_DIR/sample-web-app"
           cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
 
@@ -136,10 +135,6 @@ jobs:
           mkdir -p "$TMP_DIR/sample-web-app/scripts"
           cp -r "$ROOT_DIR/scripts/ps" "$TMP_DIR/sample-web-app/scripts/" || true
           cp -r "$ROOT_DIR/scripts/shell" "$TMP_DIR/sample-web-app/scripts/" || true
- 
-          # --- Root files ---
-          cp "$ROOT_DIR/README.md" "$TMP_DIR/" || true
-          echo "prepared zip structure [DONE]"
  
       - name: Create flattened ZIP
         run: |
@@ -206,19 +201,6 @@ jobs:
         with:
           name: saml-sso-toolkit
           path: saml-sso-toolkit.zip
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v3
-        
-      - name: Deploy RPM to Artifactory
-        run : |
-          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
 
       - name: Cleanup temporary files
         if: always()

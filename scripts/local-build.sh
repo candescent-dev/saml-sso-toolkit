@@ -109,15 +109,9 @@ safe_copy_file "$ROOT_DIR/sample-web-app/backend/cache.json"        "$TMP_DIR/sa
 safe_copy_dir  "$ROOT_DIR/scripts/shell"                        "$TMP_DIR/sample-web-app/scripts/"               "shell scripts"
 safe_copy_dir  "$ROOT_DIR/scripts/ps"                        "$TMP_DIR/sample-web-app/scripts/"               "power shell scripts"
 
-# Copy main README.md
-cp "$ROOT_DIR/sample-web-app/README.md" "$TMP_DIR/sample-web-app/" || warn "Main README.md not found"
- 
 # Copy Dockerfile & Json files
 cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app/" || warn "Dockerfile not found"
 cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
-
-# Copy main README.md
-cp "$ROOT_DIR/README.md" "$TMP_DIR/" || warn "Main README.md not found"
 
 # ---- Check for Dockerfile before proceeding ----
 DOCKERFILE_PATH="$TMP_DIR/sample-web-app/Dockerfile"
