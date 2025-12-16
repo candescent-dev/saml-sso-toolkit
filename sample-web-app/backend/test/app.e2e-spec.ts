@@ -88,7 +88,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   beforeEach(() => {
     console.log("---- Test case is running -----")
-    nock.cleanAll();
+    //nock.cleanAll();
   });
 
   it('check health of backend -> /health (GET)', () => {
@@ -104,7 +104,6 @@ describe('SAML backend testcases (e2e)', () => {
   });
 
   it('validate success true message and attributes on saml/login API response', async () => {
-    console.log("payload is " , payload);
     const res = await agent
       .post(samlLoginApi)
       .send(payload)
