@@ -18,7 +18,6 @@ describe('SAML backend testcases (e2e)', () => {
   let payload: any;
   let xml: any;
   let samlExtracted: any;
-  let isMockFlag: Boolean;
 
   const samlLoginApi = '/saml/login';
   const acsMockURI = 'http://localhost:7080';
@@ -73,7 +72,6 @@ describe('SAML backend testcases (e2e)', () => {
       );
       console.log('if test cases are failing, check the acsurl value if it is correct');
     } else if (readAcsUrlValue == acsUrlMock) {
-      isMockFlag = true;
       console.log('Acs url is same as in cache', readAcsUrlValue);
       console.log('Mock client ACS endpoint');
       nock(acsMockURI).post(validatorUri).query(true).reply(200, { success: true });
