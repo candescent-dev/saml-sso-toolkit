@@ -18,6 +18,7 @@ describe('SAML backend testcases (e2e)', () => {
   let payload: any;
   let xml: any;
   let samlExtracted: any;
+  let isMockFlag : Boolean;
 
   const samlLoginApi = '/saml/login';
   const acsMockURI = 'http://localhost:7080';
@@ -72,6 +73,7 @@ describe('SAML backend testcases (e2e)', () => {
       );
       console.log('if test cases are failing, check the acsurl value if it is correct');
     } else if (readAcsUrlValue == acsUrlMock) {
+      isMockFlag = true;
       console.log('Acs url is same as in cache', readAcsUrlValue);
       console.log('Mock client ACS endpoint');
       nock(acsMockURI).post(validatorUri).query(true).reply(200, { success: true });
@@ -161,7 +163,8 @@ describe('SAML backend testcases (e2e)', () => {
   }, 4000);
 
   it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same request', async () => {
-    nock.cleanAll();
+    if(isMockFlag == true){
+    nock.cleanAll();}
     const previousResponseId = samlExtracted.responseId;
     const previousAssertionId = samlExtracted.assertionId;
     const previousIssueInstant = samlExtracted.issueInstant;
