@@ -86,11 +86,6 @@ describe('SAML backend testcases (e2e)', () => {
     //await clientApp.close();
   });
 
-  beforeEach(() => {
-    console.log("---- Test case is running -----")
-    //nock.cleanAll();
-  });
-
   it('check health of backend -> /health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')
@@ -166,6 +161,7 @@ describe('SAML backend testcases (e2e)', () => {
   }, 4000);
 
   it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same request', async () => {
+    nock.cleanAll();
     const previousResponseId = samlExtracted.responseId;
     const previousAssertionId = samlExtracted.assertionId;
     const previousIssueInstant = samlExtracted.issueInstant;
