@@ -28,7 +28,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   payload = {
     acsUrl: readAcsUrlValue,
-    publicCertificate,
+    publicCertificate: publicCertificate,
     attributes: {
       firstName: 'John',
       lastName: 'Doe',
@@ -86,6 +86,10 @@ describe('SAML backend testcases (e2e)', () => {
     //await clientApp.close();
   });
 
+  beforeEach(() => {
+    nock.cleanAll();
+  });
+
   it('check health of backend -> /health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')
@@ -128,10 +132,10 @@ describe('SAML backend testcases (e2e)', () => {
     expect(xml).toContain('<saml:NameID>' + memId + '</saml:NameID>');
     expect(xml).toContain(
       '    <saml:AudienceRestriction>\n' +
-        '        <saml:Audience>' +
-        mailID +
-        '</saml:Audience>\n' +
-        '      </saml:AudienceRestriction>',
+      '        <saml:Audience>' +
+      mailID +
+      '</saml:Audience>\n' +
+      '      </saml:AudienceRestriction>',
     );
     expect(xml).toContain('<saml:Attribute Name="firstName">');
     expect(xml).toContain('<saml:AttributeValue>' + fname + '</saml:AttributeValue>');
@@ -160,18 +164,63 @@ describe('SAML backend testcases (e2e)', () => {
     expect(samlExtracted.attributes.memberId).toBe(memId);
   }, 4000);
 
-  it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same response', async () => {}, 4000);
+  it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same request', async () => {
+    const previousResponseId = samlExtracted.responseId;
+    const previousAssertionId = samlExtracted.assertionId;
+    const previousIssueInstant = samlExtracted.issueInstant;
+    const previousAssertionIssueInstant = samlExtracted.assertionIssueInstant;
 
-  function extractAttributeErrors(errors: any[]) {
-    const attrs = errors.find((e) => e.property === 'attributes');
-    if (!attrs || !attrs.children) return [];
+    const res2 = await agent.post(samlLoginApi)
+      .send(payload)
+      .catch((err: any) => {
+        console.error('Supertest Error:', err.res?.text || err);
+        throw err;
+      });
+    expect(res2.status).toBe(201);
+    const xml2 = res2.body.xml;
+    console.log('xml2 second hit is -> ', res2.body);
+    const samlExtracted2 = extractSamlFields(xml2);
 
-    return attrs.children.flatMap((child) =>
-      Object.values(child.constraints ?? {}).map(
-        (msg) => `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`,
-      ),
+    expect(samlExtracted2.responseId).not.toBe(previousResponseId);
+    expect(samlExtracted2.assertionId).not.toBe(previousAssertionId);
+    expect(samlExtracted2.issueInstant).not.toBe(previousIssueInstant);
+    expect(samlExtracted2.assertionIssueInstant).not.toBe(previousAssertionIssueInstant);
+  }, 4000);
+
+  it('Validate error when certificate is not PEM formatted', async () => {
+    const payload = {
+      acsUrl: readAcsUrlValue,
+      publicCertificate: 'MIIDqDCCApACCQDxEV5XnYNRzzANBgkqhkiG9w0BAQsFADCBlTELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0dlb3JnaWExEDAOBgNVBAcMB0F0bGFudGExEzARBgNVBAoMCkNhbmRlc2NlbnQxCzAJBgNVBAsMAklUMRswGQYDVQQDDBJpZHAuY2FuZGVzY2VudC5jb20xIzAhBgkqhkiG9w0BCQEWFGFkbWluQGNhbmRlc2NlbnQuY29tMB4XDTI1',
+      attributes: {
+        firstName: 'John',
+        lastName: 'Doe',
+        memberId: 'AS83747TB',
+        email: 'john.doe@example.com',
+      },
+    };
+    const res = await agent
+      .post(samlLoginApi)
+      .send(payload)
+      .catch((err: any) => {
+        console.error('Supertest Error:', err.res?.text || err);
+        throw err;
+      });
+    expect(res.status).toBe(422); //Unprocessable Entity
+    expect(res.body.message).toEqual('Invalid certificate format');
+  });
+
+  it('validate when no attribute is sent in payload', async () => {
+    const payload = {
+      acsUrl: readAcsUrlValue,
+      publicCertificate,
+    };
+    const dto = plainToInstance(SamlRequestDto, payload);
+    const errors = await validate(dto);
+    const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
+    expect(messages).toEqual(
+      expect.arrayContaining(["attributes should not be empty"]),
     );
-  }
+  });
 
   it('should fail when no payload is sent', async () => {
     const payload = {};
@@ -286,6 +335,17 @@ describe('SAML backend testcases (e2e)', () => {
     const messages = errors.flatMap((e) => Object.values(e.constraints ?? {}));
     expect(messages).toEqual(expect.arrayContaining(['publicCertificate should not be empty']));
   });
+
+    function extractAttributeErrors(errors: any[]) {
+    const attrs = errors.find((e) => e.property === 'attributes');
+    if (!attrs || !attrs.children) return [];
+
+    return attrs.children.flatMap((child) =>
+      Object.values(child.constraints ?? {}).map(
+        (msg) => `attributes.${child.property} ${(msg as string).split(' ').slice(1).join(' ')}`,
+      ),
+    );
+  }
 
   it('should fail when all attributes are missing', async () => {
     const dto = plainToInstance(SamlRequestDto, {
@@ -445,6 +505,7 @@ describe('SAML backend testcases (e2e)', () => {
     const messages = extractAttributeErrors(errors);
     expect(messages).toEqual(expect.arrayContaining(['attributes.email should not be empty']));
   });
+
   it('should fail when memberId is empty', async () => {
     const payload = {
       acsUrl: acsUrlMock,

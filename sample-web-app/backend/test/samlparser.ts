@@ -15,6 +15,10 @@ function extractSamlFields(xml: string) {
 
   // Basic fields
   const destination = response['@_Destination'];
+  const responseId = response['@_ID'];
+  const assertionId = assertion?.['@_ID'];
+  const issueInstant = response['@_IssueInstant'];
+  const assertionIssueInstant = assertion?.['@_IssueInstant'];
   const issuerTop = response.Issuer;
   const issuerAssertion = assertion?.Issuer;
   const nameId = assertion?.Subject?.NameID;
@@ -38,6 +42,10 @@ function extractSamlFields(xml: string) {
 
   return {
     destination,
+    responseId,
+    assertionId,
+    issueInstant,
+    assertionIssueInstant,
     issuerTop,
     issuerAssertion,
     nameId,
