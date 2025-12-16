@@ -1,0 +1,215 @@
+name: dbk-saml-sso-toolkit
+ 
+on:
+  push:
+    branches: [ release1 ]
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+ 
+    env:
+      ROOT_DIR: ${{ github.workspace }}
+      TMP_DIR: ${{ github.workspace }}/tmp
+      VERSION: "v1"
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+ 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+ 
+      - name: Prepare directories
+        run: |
+          rm -rf "$TMP_DIR"
+          mkdir -p "$TMP_DIR"
+          echo "TMP directory: $TMP_DIR"
+ 
+      - name: Install frontend dependencies
+        working-directory: sample-web-app/frontend
+        run: npm ci
+ 
+      - name: Install backend dependencies
+        working-directory: sample-web-app/backend
+        run: npm ci
+ 
+      - name: Install client-web-app dependencies
+        working-directory: client-web-app
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: sample-web-app/frontend
+        run: |
+          echo "Building frontend..."
+          npm run build
+          echo "Frontend build complete."
+ 
+      - name: Build backend
+        working-directory: sample-web-app/backend
+        run: |
+          echo "Building backend..."
+          npm run build
+          echo "Backend build complete."
+ 
+      - name: Build client-web-app backend
+        working-directory: client-web-app
+        run: |
+          echo "Building client-web-app backend..."
+          npm run build
+          echo "Backend client-web-app build complete."
+
+      - name: Run backend tests
+        working-directory: sample-web-app/backend
+        run: npm test
+
+      - name: Run backend e2e tests
+        working-directory: sample-web-app/backend
+        run: npm run test:e2e
+        
+      - name: Upload e2e JUnit Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-junit
+          path: sample-web-app/backend/test-results/junit/
+
+      - name: Upload e2e HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-html
+          path: sample-web-app/backend/test-results/html/
+
+      - name: Publish Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: sample-web-app/backend/test-results/junit/jest-e2e.xml
+
+      - name: Install e2e dependencies (sample-web-app)
+        working-directory: sample-web-app
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        working-directory: sample-web-app
+        run: npx playwright install chromium
+
+      - name: Run frontend e2e tests
+        working-directory: sample-web-app
+        run: npx playwright test
+
+      - name: Upload e2e HTML frontend Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-html
+          path: sample-web-app/playwright-report/
+
+      - name: Build Docker Image
+        run: |
+          docker build -t saml-sso-toolkit:latest -f ./sample-web-app/Dockerfile ./sample-web-app
+ 
+      - name: Verify Docker Image Build
+        run: docker images | grep saml-sso-toolkit
+ 
+      - name: Prepare ZIP structure
+        run: |
+          echo "Preparing ZIP structure..."
+          mkdir -p "$TMP_DIR/sample-web-app/frontend"
+          cp -r "$ROOT_DIR/sample-web-app/frontend/build" "$TMP_DIR/sample-web-app/frontend/"
+          cp "$ROOT_DIR/sample-web-app/frontend/package.json" "$TMP_DIR/sample-web-app/frontend/"
+ 
+          # --- Backend ---
+          mkdir -p "$TMP_DIR/sample-web-app/backend"
+          cp -r "$ROOT_DIR/sample-web-app/backend/dist"       "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/package.json"  "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/cache.json"    "$TMP_DIR/sample-web-app/backend/cache.json"
+ 
+          cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app" || warn "Dockerfile not found at $ROOT_DIR/sample-web-app"
+          cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
+
+          # --- Scripts ---
+          mkdir -p "$TMP_DIR/sample-web-app/scripts"
+          cp -r "$ROOT_DIR/scripts/ps" "$TMP_DIR/sample-web-app/scripts/" || true
+          cp -r "$ROOT_DIR/scripts/shell" "$TMP_DIR/sample-web-app/scripts/" || true
+ 
+      - name: Create flattened ZIP
+        run: |
+          ZIP_NAME="saml-sso-toolkit.zip"
+          FINAL_ZIP_PATH="${{ github.workspace }}/$ZIP_NAME"
+          echo "Creating flattened ZIP at $FINAL_ZIP_PATH..."
+          (cd "$TMP_DIR" && zip -r "$FINAL_ZIP_PATH" ./* > /dev/null)
+          echo "Created flattened ZIP at $FINAL_ZIP_PATH"
+          unzip -l "$FINAL_ZIP_PATH" | head -20
+ 
+      - name: Verify ZIP content
+        run: |
+          echo "Verifying flattened ZIP:"
+          ls -lh *.zip
+          echo "Inspecting structure:"
+          unzip -l "saml-sso-toolkit.zip" | head -30
+ 
+      - name: Deploy - Extract and Run Docker Container
+        run: |
+          echo "Starting CD process..."
+          ZIP_FILE="saml-sso-toolkit.zip"
+          DEPLOY_DIR="${{ github.workspace }}/deploy"
+         
+          echo "Extracting ZIP package..."
+          mkdir -p "$DEPLOY_DIR"
+          unzip -q "$ZIP_FILE" -d "$DEPLOY_DIR"
+ 
+          echo " Building Docker image from extracted files..."
+          cd "$DEPLOY_DIR/sample-web-app"
+          docker build -t saml-sso-toolkit:latest .
+ 
+          echo " Running Docker container..."
+          docker run -d --name saml-sso-toolkit \
+            -p 8000:8000 \
+            -p 9000:9000 \
+            saml-sso-toolkit:latest
+ 
+          echo " Waiting for containers to initialize..."
+          sleep 15
+ 
+          echo " Checking application health..."
+          FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000)
+          BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/health)
+ 
+          echo " Frontend (8000) HTTP status: $FRONTEND_STATUS"
+          echo " Backend (9000) HTTP status: $BACKEND_STATUS"
+ 
+          if [ "$FRONTEND_STATUS" -eq 200 ] && [ "$BACKEND_STATUS" -eq 200 ]; then
+            echo " Both frontend and backend are running successfully!"
+          else
+            echo " One or both services failed to start properly!"
+            echo " Displaying container logs for debugging..."
+            docker logs saml-sso-toolkit || true
+            echo " Showing running containers..."
+            docker ps -a
+            exit 1
+          fi
+ 
+      - name: Show Running Containers
+        run: docker ps -a
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v3
+        
+      - name: Upload ZIP to Artifactory
+        run : |
+          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group/saml/{VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
+
+      - name: Cleanup temporary files
+        if: always()
+        run: |
+          rm -rf "$TMP_DIR"
+          echo "Cleaned temporary files."
+ 
