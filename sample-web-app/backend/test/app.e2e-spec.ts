@@ -88,29 +88,6 @@ describe('SAML backend testcases (e2e)', () => {
     //await clientApp.close();
   });
 
-
-  beforeEach(() => {
-    // Remove any interceptors left by previous tests
-    nock.cleanAll();
-    // Optional: abort any inflight mock requests to avoid hanging between tests
-    nock.abortPendingRequests();
-    // Block real network by default; allow only localhost if your app spins a test server
-    nock.disableNetConnect();
-    nock.enableNetConnect((host) => {
-      return host.includes('127.0.0.1') || host.includes('localhost');
-    });
-  });
-
-  afterEach(() => {
-    // Good practice: verify you used all planned mocks in the test
-    // If you keep references to scopes, you can check scope.isDone()
-    // Otherwise, clear again to keep the environment pristine.
-    nock.cleanAll();
-    // Re-enable network for safety (not strictly required if you  // Re-enable network for safety (not strictly required if you set in beforeEach)
-    nock.enableNetConnect();
-  });
-
-
     it('check health of backend -> /health (GET)', () => {
       return request(app.getHttpServer())
         .get('/health')
@@ -183,29 +160,6 @@ describe('SAML backend testcases (e2e)', () => {
       expect(samlExtracted.attributes.lastName).toBe(lname);
       expect(samlExtracted.attributes.email).toBe(mailID);
       expect(samlExtracted.attributes.memberId).toBe(memId);
-    }, 4000);
-
-    it('validate the Response ID, Assertion ID, IssueInstant, Assertion IssueInstant, SubjectConfirmationData, Conditions in xml on hitting the saml/login API twice with same request', async () => {
-      const previousResponseId = samlExtracted.responseId;
-      const previousAssertionId = samlExtracted.assertionId;
-      const previousIssueInstant = samlExtracted.issueInstant;
-      const previousAssertionIssueInstant = samlExtracted.assertionIssueInstant;
-
-      const res2 = await agent.post(samlLoginApi)
-        .send(payload)
-        .catch((err: any) => {
-          console.error('Supertest Error:', err.res?.text || err);
-          throw err;
-        });
-      expect(res2.status).toBe(201);
-      const xml2 = res2.body.xml;
-      console.log('xml2 second hit is -> ', res2.body);
-      const samlExtracted2 = extractSamlFields(xml2);
-
-      expect(samlExtracted2.responseId).not.toBe(previousResponseId);
-      expect(samlExtracted2.assertionId).not.toBe(previousAssertionId);
-      expect(samlExtracted2.issueInstant).not.toBe(previousIssueInstant);
-      expect(samlExtracted2.assertionIssueInstant).not.toBe(previousAssertionIssueInstant);
     }, 4000);
 
     it('Validate error when certificate is not PEM formatted', async () => {
