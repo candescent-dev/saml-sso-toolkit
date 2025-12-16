@@ -28,7 +28,7 @@ describe('SAML backend testcases (e2e)', () => {
 
   payload = {
     acsUrl: readAcsUrlValue,
-    publicCertificate: publicCertificate,
+    publicCertificate,
     attributes: {
       firstName: 'John',
       lastName: 'Doe',
