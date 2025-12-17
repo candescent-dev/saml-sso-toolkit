@@ -1,10 +1,12 @@
 # dbk-saml-sso-features-toolkit Overview
-We have developed a SAML Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with Candescent platform, in a local development environment. This Toolkit acts as a simulator to replicate the key functionalities of SAML Identity Provider, such as generating SAML assertions. Thus, it allows developers to verify during deployment, that their application’s SAML integration works as expected, and is compatible with the Candescent platform.
+We have developed a SAML Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with the Candescent production platform, in a local development environment. This toolkit acts as a simulator by replicating the key functionalities of SAML, such as generating SAML assertions. It allows developers to verify, during deployment, that their application’s SAML integration works as expected and is fully compatible with the Candescent production platform.
 Components:
 Frontend:
-•   Displays homepage with ACS URL, Candescent public key, Attributes.
-•   Allows downloading Candescent public key & click on Run Simulation button.
-•   Shows success and error page according to response.
+•   Displays a homepage containing the ACS URL, a non-editable vendor’s public certificate, and user attributes such as first name, last name, member ID, and email.
+•    Provides an option to download the Candescent public key.
+•    Includes a Run Simulation button that triggers the saml/login login API, which generates a SAML assertion that can be verified by the ACS endpoint.
+•   Displays a Success page when a successful response is received from the ACS endpoint.
+•   Displays an Error page with an appropriate error message when the ACS endpoint returns a failure response.
 Backend:
 •   Creates SAML assertion in XML format. 
 •   Sign in via candescent private key. 
@@ -19,7 +21,6 @@ It orchestrates calls to the SAML toolkit, validates tokens and metadata, and ex
 
 ### Frontend (`sample-web-app/frontend`)
 - **Framework**: React (Create React App)
-- **Language**: TypeScript
 - **State Management**: Redux Toolkit (`@reduxjs/toolkit`, `react-redux`)
 - **Routing**: React Router (`react-router-dom`)
 - **Styling**: CSS modules and standard CSS
@@ -27,7 +28,6 @@ It orchestrates calls to the SAML toolkit, validates tokens and metadata, and ex
 
 ### Backend (`sample-web-app/backend`)
 - **Framework**: NestJS (Node.js)
-- **Language**: TypeScript
 - **Build & Runtime**: Node.js + npm
 - **Validation & Transformation**: `class-validator`, `class-transformer`
 - **Security / Tokens**: `jsonwebtoken`, RSA key handling for signing ID Tokens
@@ -35,8 +35,6 @@ It orchestrates calls to the SAML toolkit, validates tokens and metadata, and ex
 
 ### client-web-app (`client-web-app`)
 - **Framework**: NestJS (Node.js)
-- **Language**: TypeScript
-- **Configuration**: `@nestjs/config` for environment and configuration management
 - **HTTP / Integration**: `@nestjs/axios` and `rxjs` for calling external SAML toolkit endpoints
 - **Validation & Transformation**: `class-validator`, `class-transformer`
 - **Security / Token Handling**: `jose` for working with JWTs and JWK/JWKS
@@ -50,6 +48,26 @@ Use the following steps to clone the repository locally:
 git clone https://github.com/dfh-digital-insight/dbk-devex-saml-sso-toolkit.git
 cd dbk-devex-saml-sso-toolkit-main
 ```
+
+## Configuration
+
+The sample web application includes a `config.json` file that allows you to configure the frontend and backend ports.
+
+**Location:**  
+`sample-web-app/config.json`
+
+**Example:**
+{
+  "frontendPort": 8000,
+  "backendPort": 9000
+}
+
+### Port descriptions:
+
+- **frontendPort**: Port on which the sample frontend application runs
+- **backendPort**: Port on which the backend server runs
+
+Update these values as needed before starting the application.
 
 ## Running the Sample Web App (Backend + Frontend)
 
@@ -82,36 +100,30 @@ npm install
 npm start
 ```
 
-The frontend React app will start on `http://localhost:8000` (as configured in the `start` script).
+The frontend React app will start on `http://localhost:8000` (as configured in the `config.json`).
 
 Once both servers are running:
 - Access the **frontend** in your browser at `http://localhost:8000`.
-- The frontend will communicate with the **backend** to generate client credentials, download metadata, and perform SAML-related operations.
+- The frontend will communicate with the **backend** to generates a SAML assertion, signs it with Candescent’s private key, encrypts it using the vendor’s public key, Base64-encodes the resulting SAML response, and posts it to the vendor’s ACS URL.
 
 ## Application Flow
 
 1. User opens the web application (e.g., `http://localhost:8000`).
 
-2. Frontend displays session credentials and mock user attributes.
+2. Displays a homepage containing the ACS URL, a non-editable vendor’s public certificate, and user attributes such as first name, last name, member ID, and email.
 
-3. User provides:
-   - ACS URL  
-   - Vendor Encryption Certificate (Public Key)
+3. User can download the **Candescent Public Key** for signature verification.
 
-4. User can download the **Candescent Public Key** for signature verification.
+4. User clicks **Run Simulation** button that triggers the saml/login login API, which generates a SAML assertion that can be verified by the ACS endpoint
 
-5. User clicks **Run Simulation**.
-
-6. Frontend sends the input data to the backend IdP endpoint.
-
-7. Backend:
+5. Backend:
    - Creates a SAML assertion
    - Signs it using Candescent’s private key
    - Encrypts it using the vendor’s public key
    - Base64-encodes the SAML response
    - Posts it to the vendor’s ACS URL
 
-8. Frontend displays **Success** or **Error** based on the HTTP response.
+8. The system displays a Success page upon receiving a successful response from the ACS endpoint and an Error page with an appropriate message when a failure response is returned
 
 
 ## dbk-oidc-sso-features-toolkit Directories
@@ -120,10 +132,10 @@ Once both servers are running:
 dbk-oidc-sso-features-toolkit/
 ├── .github/
 ├── client-web-app/
-├── dist/
 ├── documentation/
 ├── sample-web-app/
 ├── scripts/
+└── README.md
 ```
  
 ---
@@ -141,27 +153,21 @@ Holds the final output of the entire project. This includes a ZIP archive(`saml-
 - #### oidc-sso-feature-toolkit.zip
 ```
 dbk-saml-sso-features-toolkit/
-├── sample-web-app/
-│   ├── frontend/
-│   ├── backend/
-│   ├── README.md
-│   └── Dockerfile
-│
-├── client-web-app/
-│
-├── scripts/
-│   ├── ps/
-│   │   ├── init.ps1
-│   │   ├── run-web-app.ps1
-│   │   └── selftest.ps1
-│   │
-│   └── shell/
-│       ├── init.sh
-│       ├── run-web-app.sh
-│       └── selftest.sh
-│
-├── documentation/
-└── README.md
+└── sample-web-app/
+    ├── frontend/
+    ├── backend/
+    ├── Dockerfile
+    ├── config.json
+    └── scripts/
+        ├── ps/
+        │   ├── init.ps1
+        │   ├── run-web-app.ps1
+        │   └── selftest.ps1
+        │
+        └── shell/
+            ├── init.sh
+            ├── run-web-app.sh
+            └── selftest.sh
 ```
  
 ### documentation/
