@@ -24,7 +24,7 @@ It orchestrates calls to the SAML toolkit, validates tokens and metadata, and ex
 - **State Management**: Redux Toolkit (`@reduxjs/toolkit`, `react-redux`)
 - **Routing**: React Router (`react-router-dom`)
 - **Styling**: CSS modules and standard CSS
-- **Testing**: Jest, React Testing Library (`@testing-library/react`, `@testing-library/jest-dom`)
+- **Testing**: Playwright
 
 ### Backend (`sample-web-app/backend`)
 - **Framework**: NestJS (Node.js)
@@ -38,7 +38,6 @@ It orchestrates calls to the SAML toolkit, validates tokens and metadata, and ex
 - **HTTP / Integration**: `@nestjs/axios` and `rxjs` for calling external SAML toolkit endpoints
 - **Validation & Transformation**: `class-validator`, `class-transformer`
 - **Security / Token Handling**: `jose` for working with JWTs and JWK/JWKS
-- **Testing**: Jest and Supertest
 
 ## Clone the Project
 
@@ -171,7 +170,7 @@ dbk-saml-sso-features-toolkit/
 ```
  
 ### documentation/
-Contains all project-related documentation, excluding the main `README.md`. This may include architecture diagrams, API references, setup guides, and other technical documents.
+Contains a user guide for the SAML toolkit.
  
 ### sample-web-app/
 A complete web application that includes both frontend and backend modules. This serves as a reference implementation for the overall system.
