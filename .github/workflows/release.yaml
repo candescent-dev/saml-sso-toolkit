@@ -2,7 +2,7 @@ name: dbk-saml-sso-toolkit
  
 on:
   push:
-    branches: [ release1 ]
+    branches: [ release ]
  
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
     env:
       ROOT_DIR: ${{ github.workspace }}
       TMP_DIR: ${{ github.workspace }}/tmp
-      VERSION: "v1"
+      VERSION: "v1" # Update version as part of the release process
  
     steps:
       - name: Checkout repository
@@ -205,7 +205,7 @@ jobs:
         
       - name: Upload ZIP to Artifactory
         run : |
-          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group/saml/{VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
+          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group/saml/${VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
 
       - name: Cleanup temporary files
         if: always()
