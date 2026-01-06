@@ -7,7 +7,7 @@ $SCRIPTS_DIR = Split-Path -Parent $SCRIPT_DIR       # sample-web-app/scripts
 $WEBAPP_DIR  = Split-Path -Parent $SCRIPTS_DIR      # sample-web-app
 
 $DOCKERFILE_PATH = Join-Path $WEBAPP_DIR "Dockerfile"
-$IMAGE_NAME = "saml-sso-toolkit"
+$IMAGE_NAME = "oidc-sso-toolkit"
 $TAG = "latest"
 
 function Log {

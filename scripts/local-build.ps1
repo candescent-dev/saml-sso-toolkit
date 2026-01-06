@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 
 # ---- Setup ----
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ROOT_DIR   = Split-Path -Parent $SCRIPT_DIR   # Now points to project root (saml-sso-toolkit)
+$ROOT_DIR   = Split-Path -Parent $SCRIPT_DIR   # Now points to project root (oidc-sso-toolkit)
 $DIST_DIR   = Join-Path $ROOT_DIR "dist"
 $TMP_DIR    = New-Item -ItemType Directory -Path ([System.IO.Path]::GetTempPath() + [System.Guid]::NewGuid().ToString())
 $TARGET     = if ($args.Count -ge 1) { $args[0] } else { "all" }
@@ -105,7 +105,7 @@ Log "Local build and packaging preparation completed successfully!"
 
 
 # ---- Create ZIP ----
-$ZIP_NAME = "saml-sso-toolkit.zip"
+$ZIP_NAME = "oidc-sso-toolkit.zip"
 $ZIP_PATH = Join-Path $DIST_DIR $ZIP_NAME
 
 Log "Creating ZIP package..."

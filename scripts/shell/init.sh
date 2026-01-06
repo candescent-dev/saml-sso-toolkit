@@ -4,7 +4,7 @@ set -euo pipefail
 # ---- Setup ----
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DOCKERFILE_PATH="$ROOT_DIR/Dockerfile"
-IMAGE_NAME="saml-sso-toolkit"
+IMAGE_NAME="oidc-sso-toolkit"
 TAG="latest"
 
 # ---- Helpers ----

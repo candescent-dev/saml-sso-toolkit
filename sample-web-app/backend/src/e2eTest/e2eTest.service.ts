@@ -8,6 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ServiceError } from './types/e2eTest.types';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SamlSettingData } from '../saml/types/samlSetting.types';
+import { generateHtmlReport } from './htmlReportGenerator';
 
 type JestReporter = string | [string, Record<string, any>];
 
@@ -54,18 +55,6 @@ export class E2ETestService {
       const reporters: JestReporter[] = [
         'default',
         ['jest-junit', { outputDirectory: tempReportDir, outputName: 'jest-e2e.xml' }],
-        [
-          'jest-html-reporters',
-          {
-            publicPath: tempReportDir,
-            filename: 'e2e-report.html',
-            inlineSource: true,
-            expand: true,
-            includeConsoleLog: true,
-            includeFailureMsg: true,
-            includeSuiteFailure: true,
-          },
-        ],
       ];
       const isPackagedBackendRuntime = this.isPackagedBackendRuntime();
       const jestRootDir = this.getJestRootDirectory();
@@ -90,11 +79,18 @@ export class E2ETestService {
       );
       if (!results) this.throwServiceError('No results returned from Jest', 500);
       if (results.numTotalTests === 0) this.throwServiceError('No E2E tests were executed', 422);
-      /** Ensure reports exist */
-      const htmlReportPath = join(tempReportDir, 'e2e-report.html');
+      /** Ensure XML report exists */
       const xmlReportPath = join(tempReportDir, 'jest-e2e.xml');
-      if (!existsSync(htmlReportPath) || !existsSync(xmlReportPath))
-        this.throwServiceError('Reports were not generated correctly', 500);
+      if (!existsSync(xmlReportPath))
+        this.throwServiceError('XML report was not generated correctly', 500);
+      /** Generate custom HTML report from XML */
+      const htmlReportPath = join(tempReportDir, 'e2e-report.html');
+      try {
+        generateHtmlReport(xmlReportPath, htmlReportPath);
+      } catch (error: any) {
+        console.warn('Failed to generate custom HTML report:', error?.message);
+        // Continue even if HTML generation fails - XML is still available
+      }
       /** Create zip file buffer and return */
       return await this.createZipBufferFromDir(tempReportDir);
     } catch (error: any) {

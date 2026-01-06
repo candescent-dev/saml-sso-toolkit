@@ -120,7 +120,7 @@ if [ ! -f "$DOCKERFILE_PATH" ]; then
 fi
 
 # ---- Create ZIP ----
-ZIP_NAME="saml-sso-toolkit.zip"
+ZIP_NAME="oidc-sso-toolkit.zip"
 pushd "$TMP_DIR" > /dev/null
 zip -r "$DIST_DIR/$ZIP_NAME" ./* > /dev/null
 popd > /dev/null
