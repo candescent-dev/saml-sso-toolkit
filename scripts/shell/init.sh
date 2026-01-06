@@ -3,8 +3,9 @@ set -euo pipefail
 
 # ---- Setup ----
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DOCKERFILE_PATH="$ROOT_DIR/Dockerfile"
-IMAGE_NAME="oidc-sso-toolkit"
+WEBAPP_DIR="$ROOT_DIR/sample-web-app"
+DOCKERFILE_PATH="$WEBAPP_DIR/Dockerfile"
+IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
 
 # ---- Helpers ----
@@ -20,7 +21,7 @@ fi
 log "Building Docker image: $IMAGE_NAME:$TAG"
 log "Using Dockerfile: $DOCKERFILE_PATH"
 
-docker build -t "$IMAGE_NAME:$TAG" -f "$DOCKERFILE_PATH" "$ROOT_DIR"
+docker build -t "$IMAGE_NAME:$TAG" -f "$DOCKERFILE_PATH" "$WEBAPP_DIR"
 
 log "Docker image built successfully: $IMAGE_NAME:$TAG"
 log "Image ID: $(docker images -q $IMAGE_NAME:$TAG)"

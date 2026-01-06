@@ -4,10 +4,10 @@ set -euo pipefail
 
 # ---- Setup ----
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CONTAINER_NAME="oidc-sso-toolkit-container"
+CONTAINER_NAME="saml-sso-toolkit-container"
 MAX_RETRIES=5
 RETRY_INTERVAL=2
-IMAGE_NAME="oidc-sso-toolkit"
+IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
 
 # ---- Helpers ----

@@ -2,9 +2,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ---- Setup ----
-$IMAGE_NAME = "oidc-sso-toolkit"
+$IMAGE_NAME = "saml-sso-toolkit"
 $TAG = "latest"
-$CONTAINER_NAME = "oidc-sso-toolkit-container"
+$CONTAINER_NAME = "saml-sso-toolkit-container"
 
 function Log {
     param([string]$Message)

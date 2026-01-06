@@ -1,13 +1,14 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Script is located inside: sample-web-app/scripts/ps/
+# Script is located inside: scripts/ps/
 $SCRIPT_DIR  = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$SCRIPTS_DIR = Split-Path -Parent $SCRIPT_DIR       # sample-web-app/scripts
-$WEBAPP_DIR  = Split-Path -Parent $SCRIPTS_DIR      # sample-web-app
+$SCRIPTS_DIR = Split-Path -Parent $SCRIPT_DIR       # scripts
+$ROOT_DIR    = Split-Path -Parent $SCRIPTS_DIR      # root
+$WEBAPP_DIR  = Join-Path $ROOT_DIR "sample-web-app"
 
 $DOCKERFILE_PATH = Join-Path $WEBAPP_DIR "Dockerfile"
-$IMAGE_NAME = "oidc-sso-toolkit"
+$IMAGE_NAME = "saml-sso-toolkit"
 $TAG = "latest"
 
 function Log {

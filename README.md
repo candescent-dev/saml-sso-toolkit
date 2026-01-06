@@ -138,6 +138,11 @@ Once both servers are running:
 - For client-web-app: `http://localhost:7080/api/saml-validator/acs`
 - The endpoint must include the full path `/api/saml-validator/acs`, not just `/api`
 
+**Note for Docker Users**: If you're running the sample web app in a Docker container and need to connect to services running on your host machine (like `client-web-app`), replace `localhost` with `host.docker.internal` in the ACS URL:
+- **When running in Docker**: Use `http://host.docker.internal:7080/api/saml-validator/acs` instead of `http://localhost:7080/api/saml-validator/acs`
+- This is because `localhost` inside a Docker container refers to the container itself, not your host machine
+- `host.docker.internal` is a special DNS name that resolves to the host machine's IP address
+
 ## Running the Client Web App (Optional - for testing)
 
 The `client-web-app` is a mock application that simulates a vendor's environment. It's useful for end-to-end testing.
@@ -161,7 +166,9 @@ This starts the client web app on `http://localhost:7080/api` by default.
    - Option to download the **Candescent Public Key** for signature verification
 
 3. User enters the vendor's **ACS URL** and **encryption public certificate**
-   - **ACS URL Example**: If using client-web-app, enter `http://localhost:7080/api/saml-validator/acs`
+   - **ACS URL Example**: 
+     - If running locally: `http://localhost:7080/api/saml-validator/acs`
+     - If running in Docker: `http://host.docker.internal:7080/api/saml-validator/acs`
    - **Public Certificate**: Enter the vendor's public certificate in PEM format
 
 4. User clicks **Run Simulation** button that triggers the `saml/login` API, which generates a SAML assertion that can be verified by the ACS endpoint
@@ -342,6 +349,10 @@ This will:
 ### Docker Build
 
 To build and run using Docker:
+
+**Important**: When running the application in Docker and connecting to services on your host machine (like `client-web-app`), use `host.docker.internal` instead of `localhost` in ACS URLs. For example:
+- Use: `http://host.docker.internal:7080/api/saml-validator/acs`
+- Instead of: `http://localhost:7080/api/saml-validator/acs`
 
 **Linux/macOS:**
 ```bash

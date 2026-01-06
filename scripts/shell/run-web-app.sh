@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # ---- Setup ----
-IMAGE_NAME="oidc-sso-toolkit"
+IMAGE_NAME="saml-sso-toolkit"
 TAG="latest"
-CONTAINER_NAME="oidc-sso-toolkit-container"
+CONTAINER_NAME="saml-sso-toolkit-container"
 
 # ---- Helpers ----
 log() { echo -e "\033[1;34m[INFO]\033[0m $*"; }

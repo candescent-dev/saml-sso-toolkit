@@ -2,11 +2,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ---- Setup ----
-$CONTAINER_NAME = "oidc-sso-toolkit-container"
+$CONTAINER_NAME = "saml-sso-toolkit-container"
 $MAX_RETRIES = 5
 $RETRY_INTERVAL = 2
 
-$IMAGE_NAME = "oidc-sso-toolkit"
+$IMAGE_NAME = "saml-sso-toolkit"
 $TAG = "latest"
 
 function Log { param([string]$Message) Write-Host "[INFO] $Message" -ForegroundColor Blue }
