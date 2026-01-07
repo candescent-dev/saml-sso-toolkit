@@ -414,19 +414,3 @@ For issues, questions, or contributions, please refer to the project documentati
 
 This project is proprietary software developed for Candescent platform integration.
 
----
-
-## Pipeline Overview
-
-```mermaid
-graph TD
-    A[Setup] --> B[Install Dependencies]
-    B --> C[Build]
-    C --> D[Test]
-    D --> E[Docker Operations]
-    E --> F[Package Preparation]
-    F --> G[Create ZIP Archive]
-    G --> H["Deployment - main branch only"]
-    H --> I[Artifact Upload]
-    I --> J[Cleanup]
-```
