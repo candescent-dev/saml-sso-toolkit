@@ -1,6 +1,6 @@
 ## Scripts Overview
 
-This `scripts` folder contains utility scripts that support building, packaging, running, and validating the SAML SSO Toolkit project.  
+This `scripts` folder contains utility scripts that support building, packaging, running, and validating the OIDC SSO Toolkit project.  
 Scripts are provided for both **Linux/macOS (shell)** and **Windows (PowerShell)**.
 
 ---
@@ -21,7 +21,7 @@ These scripts build the sample web app and create the distributable ZIP package 
   - `sample-web-app/config.json`
   - Shell scripts (`scripts/shell`) and PowerShell scripts (`scripts/ps`)
   - Main `README.md` and documentation files
-- Produce `dist/saml-sso-feature-toolkit.zip`.
+- Produce `dist/oidc-sso-feature-toolkit.zip`.
 
 ### Shell scripts (`scripts/shell`)
 
@@ -108,7 +108,7 @@ From the repository root:
 ./scripts/local-build.ps1           # Windows PowerShell
 ```
 
-The ZIP (`saml-sso-feature-toolkit.zip`) will be created under the `dist/` folder.
+The ZIP (`oidc-sso-feature-toolkit.zip`) will be created under the `dist/` folder.
 
 ### 2. Build Docker image
 

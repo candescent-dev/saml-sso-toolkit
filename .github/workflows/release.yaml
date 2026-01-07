@@ -1,4 +1,4 @@
-name: dbk-saml-sso-toolkit
+name: dbk-oidc-sso-toolkit
  
 on:
   push:
@@ -108,10 +108,10 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t saml-sso-toolkit:latest -f ./sample-web-app/Dockerfile ./sample-web-app
+          docker build -t oidc-sso-toolkit:latest -f ./sample-web-app/Dockerfile ./sample-web-app
  
       - name: Verify Docker Image Build
-        run: docker images | grep saml-sso-toolkit
+        run: docker images | grep oidc-sso-toolkit
  
       - name: Prepare ZIP structure
         run: |
@@ -136,7 +136,7 @@ jobs:
  
       - name: Create flattened ZIP
         run: |
-          ZIP_NAME="saml-sso-toolkit.zip"
+          ZIP_NAME="oidc-sso-toolkit.zip"
           FINAL_ZIP_PATH="${{ github.workspace }}/$ZIP_NAME"
           echo "Creating flattened ZIP at $FINAL_ZIP_PATH..."
           (cd "$TMP_DIR" && zip -r "$FINAL_ZIP_PATH" ./* > /dev/null)
@@ -148,12 +148,12 @@ jobs:
           echo "Verifying flattened ZIP:"
           ls -lh *.zip
           echo "Inspecting structure:"
-          unzip -l "saml-sso-toolkit.zip" | head -30
+          unzip -l "oidc-sso-toolkit.zip" | head -30
  
       - name: Deploy - Extract and Run Docker Container
         run: |
           echo "Starting CD process..."
-          ZIP_FILE="saml-sso-toolkit.zip"
+          ZIP_FILE="oidc-sso-toolkit.zip"
           DEPLOY_DIR="${{ github.workspace }}/deploy"
          
           echo "Extracting ZIP package..."
@@ -162,13 +162,13 @@ jobs:
  
           echo " Building Docker image from extracted files..."
           cd "$DEPLOY_DIR/sample-web-app"
-          docker build -t saml-sso-toolkit:latest .
+          docker build -t oidc-sso-toolkit:latest .
  
           echo " Running Docker container..."
-          docker run -d --name saml-sso-toolkit \
+          docker run -d --name oidc-sso-toolkit \
             -p 8000:8000 \
             -p 9000:9000 \
-            saml-sso-toolkit:latest
+            oidc-sso-toolkit:latest
  
           echo " Waiting for containers to initialize..."
           sleep 15
@@ -185,7 +185,7 @@ jobs:
           else
             echo " One or both services failed to start properly!"
             echo " Displaying container logs for debugging..."
-            docker logs saml-sso-toolkit || true
+            docker logs oidc-sso-toolkit || true
             echo " Showing running containers..."
             docker ps -a
             exit 1
@@ -205,7 +205,7 @@ jobs:
         
       - name: Upload ZIP to Artifactory
         run : |
-          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group/saml/${VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
+          jfrog rt  u "oidc-sso-toolkit.zip" digitalbanking-rpm-group/oidc/${VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
 
       - name: Cleanup temporary files
         if: always()

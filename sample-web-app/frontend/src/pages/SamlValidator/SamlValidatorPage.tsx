@@ -13,7 +13,7 @@ import './SamlValidatorPage.css';
 
 const SamlValidatorPage: FC = () => {
   const dispatch = useAppDispatch();
-  const { runValidatorLoading, publishSamlSettingLoading, htmlFileUrl, xmlFileUrl } =
+  const { runValidatorLoading, publishSamlSettingLoading, htmlFileUrl, xmlFileUrl, testResults } =
     useAppSelector((state) => state.samlValidator);
 
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
@@ -98,106 +98,200 @@ const SamlValidatorPage: FC = () => {
     }, 2000);
   };
 
+  /** Format time in seconds to readable format */
+  const formatTime = (seconds: number): string => {
+    if (seconds < 1) {
+      return `${Math.round(seconds * 1000)}ms`;
+    }
+    return `${seconds.toFixed(2)}s`;
+  };
+
   return (
     <>
       <div className="validator-container">
-        {/* Header */}
-        <div className="validator-header-row">
-          <h1>SAML Validator</h1>
-          <p className="heading-message">Validate and publish your SAML configuration setting</p>
+        {/* Header Section */}
+        <div className="validator-header-section">
+          <div className="validator-header-row">
+            <h1>SAML Validator</h1>
+            <p className="heading-message">
+              Validate and publish your SAML configuration settings
+            </p>
+          </div>
         </div>
+
         <div className="divider" />
-        {/* Run Validator Button */}
-        <button
-          className="run-validator-btn"
-          onClick={handleRunValidator}
-          disabled={runValidatorLoading}
-        >
-          {runValidatorLoading ? (
-            <>
-              Validating...
-              <span className="spinner" />
-            </>
-          ) : (
-            <>
-              Run Validator <img src={playIcon} className="download-icon" alt="Run" />
-            </>
-          )}
-        </button>
+
+        {/* Action Section */}
+        <div className="validator-action-section">
+          <button
+            className="run-validator-btn"
+            onClick={handleRunValidator}
+            disabled={runValidatorLoading}
+          >
+            {runValidatorLoading ? (
+              <>
+                <span className="spinner" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <img src={playIcon} className="btn-icon" alt="Run" />
+                Run Validator
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Validation Report Section */}
-        <div className="text-with-icon">
-          <img src={codeIcon} className="download-icon" alt="Report" />
-          <span className="title-label">Validation Report</span>
-        </div>
-        <div className="run-container">
-          {!htmlFileUrl ? (
-            <p>Click ‘Run Validator’ to start validation</p>
+        <div className="validator-report-section">
+          <div className="section-header">
+            <img src={codeIcon} className="section-icon" alt="Report" />
+            <span className="section-title">Validation Report</span>
+          </div>
+
+          {!testResults ? (
+            <div className="report-placeholder">
+              <p className="placeholder-text">Click 'Run Validator' to start validation</p>
+            </div>
           ) : (
-            <iframe
-              src={htmlFileUrl}
-              title="E2E HTML Report"
-              style={{ width: '100%', height: '600px', border: 'none' }}
-            />
+            <div className="report-content">
+              {/* Summary Section */}
+              <div className="test-summary">
+                <div className="summary-card">
+                  <div className="summary-label">Total Tests</div>
+                  <div className="summary-value">{testResults.totalTests}</div>
+                </div>
+                <div className="summary-card">
+                  <div className="summary-label">Passed</div>
+                  <div className="summary-value success">
+                    {testResults.totalTests - testResults.totalFailures - testResults.totalErrors - testResults.totalSkipped}
+                  </div>
+                </div>
+                <div className="summary-card">
+                  <div className="summary-label">Failed</div>
+                  <div className="summary-value failed">
+                    {testResults.totalFailures + testResults.totalErrors}
+                  </div>
+                </div>
+                <div className="summary-card">
+                  <div className="summary-label">Skipped</div>
+                  <div className="summary-value skipped">{testResults.totalSkipped}</div>
+                </div>
+                <div className="summary-card">
+                  <div className="summary-label">Duration</div>
+                  <div className="summary-value">{formatTime(testResults.totalTime)}</div>
+                </div>
+              </div>
+
+              {/* Test Results Table */}
+              <div className="test-results-table-container">
+                <table className="test-results-table">
+                  <thead>
+                    <tr>
+                      <th>Test Name</th>
+                      <th>Status</th>
+                      <th>Time</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testResults.testSuites.map((suite) =>
+                      suite.testCases.map((testCase, index) => (
+                        <tr key={`${suite.name}-${testCase.name}-${index}`}>
+                          <td className="test-name-cell">
+                            <div className="test-name">{testCase.name}</div>
+                            {testCase.className && (
+                              <div className="test-class">{testCase.className}</div>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`status-badge status-${testCase.status}`}>
+                              {testCase.status === 'passed' ? '✓ Passed' : testCase.status === 'failed' ? '✗ Failed' : '⊘ Skipped'}
+                            </span>
+                          </td>
+                          <td className="time-cell">{formatTime(testCase.time)}</td>
+                          <td className="details-cell">
+                            {testCase.failureMessage ? (
+                              <div className="failure-message">{testCase.failureMessage}</div>
+                            ) : (
+                              <span className="no-details">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
-        {/* Download Report Buttons (Shown after successful API call) */}
+
+        {/* Download Reports Section */}
         {htmlFileUrl && xmlFileUrl && (
           <>
-            <div className="text-with-icon">
-              <span className="title-label">Download Reports</span>
-            </div>
-            <div className="button-row">
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => handleDownloadFile(htmlFileUrl, 'e2e-report.html')}
-              >
-                <img
-                  src={downloadIcon}
-                  className="download-icon"
-                  alt="Download HTML"
-                  loading="lazy"
-                />
-                e2e-report.html
-              </button>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => handleDownloadFile(xmlFileUrl, 'jest-e2e.xml')}
-              >
-                <img
-                  src={downloadIcon}
-                  className="download-icon"
-                  alt="Download XML"
-                  loading="lazy"
-                />
-                jest-e2e.xml
-              </button>
+            <div className="validator-download-section">
+              <div className="section-header">
+                <span className="section-title">Download Reports</span>
+              </div>
+              <div className="download-buttons-row">
+                <button
+                  type="button"
+                  className="download-button"
+                  onClick={() => handleDownloadFile(htmlFileUrl, 'e2e-report.html')}
+                >
+                  <img
+                    src={downloadIcon}
+                    className="btn-icon"
+                    alt="Download HTML"
+                    loading="lazy"
+                  />
+                  <span>e2e-report.html</span>
+                </button>
+                <button
+                  type="button"
+                  className="download-button"
+                  onClick={() => handleDownloadFile(xmlFileUrl, 'jest-e2e.xml')}
+                >
+                  <img
+                    src={downloadIcon}
+                    className="btn-icon"
+                    alt="Download XML"
+                    loading="lazy"
+                  />
+                  <span>jest-e2e.xml</span>
+                </button>
+              </div>
             </div>
           </>
         )}
+
         <div className="divider" />
-        {/* Publish SAML Setting */}
-        <button
-          className="green-btn"
-          onClick={handlePublishSAMLSetting}
-          disabled={publishSamlSettingLoading || !htmlFileUrl || !xmlFileUrl}
-        >
-          {publishSamlSettingLoading ? (
-            <>
-              Publishing...
-              <span className="spinner" />
-            </>
-          ) : (
-            'Publish SAML Setting'
+
+        {/* Publish Section */}
+        <div className="validator-publish-section">
+          <button
+            className="publish-btn"
+            onClick={handlePublishSAMLSetting}
+            disabled={publishSamlSettingLoading || !htmlFileUrl || !xmlFileUrl}
+          >
+            {publishSamlSettingLoading ? (
+              <>
+                <span className="spinner" />
+                Publishing...
+              </>
+            ) : (
+              'Publish SAML Setting'
+            )}
+          </button>
+          {!htmlFileUrl && !xmlFileUrl && (
+            <p className="publish-hint">
+              Complete validation to enable 'Publish SAML Setting'
+            </p>
           )}
-        </button>
-        {!htmlFileUrl && !xmlFileUrl && (
-          <p className="description-message">
-            Complete validation to enable ‘Publish SAML Setting’
-          </p>
-        )}
+        </div>
       </div>
+
       {/* Download Message Toast */}
       {downloadMessage && (
         <div className="download-toast">

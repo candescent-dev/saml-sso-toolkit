@@ -3,18 +3,20 @@ import { AxiosError } from 'axios';
 import { getApi } from '../../services/api';
 import { SamlValidatorState } from './type';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { parseJestXml, TestResults } from '../../utils/xmlParser';
 
 const initialState: SamlValidatorState = {
   error: null,
   htmlFileUrl: '',
   xmlFileUrl: '',
+  testResults: null,
   runValidatorLoading: false,
   publishSamlSettingLoading: false,
 };
 
 // -------------------- Async Thunk --------------------
 export const fetchE2EReports = createAsyncThunk<
-  { htmlFileUrl: string; xmlFileUrl: string },
+  { htmlFileUrl: string; xmlFileUrl: string; testResults: TestResults },
   void,
   { rejectValue: { error: string } }
 >('e2eReports/fetch', async (_, { rejectWithValue }) => {
@@ -27,9 +29,26 @@ export const fetchE2EReports = createAsyncThunk<
     const zip = await JSZip.loadAsync(zipData);
     const htmlContent = (await zip.file('e2e-report.html')?.async('string')) || '';
     const xmlContent = (await zip.file('jest-e2e.xml')?.async('string')) || '';
+    
+    // Parse XML to extract test results
+    let testResults: TestResults;
+    try {
+      testResults = parseJestXml(xmlContent);
+    } catch (parseError) {
+      console.warn('Failed to parse XML, using empty results:', parseError);
+      testResults = {
+        totalTests: 0,
+        totalFailures: 0,
+        totalErrors: 0,
+        totalSkipped: 0,
+        totalTime: 0,
+        testSuites: [],
+      };
+    }
+    
     const htmlFileUrl = URL.createObjectURL(new Blob([htmlContent], { type: 'text/html' }));
     const xmlFileUrl = URL.createObjectURL(new Blob([xmlContent], { type: 'text/xml' }));
-    return { htmlFileUrl, xmlFileUrl };
+    return { htmlFileUrl, xmlFileUrl, testResults };
   } catch (err: unknown) {
     let message = 'Server Error: Something went wrong. Please try again later';
     if (err instanceof AxiosError) {
@@ -74,6 +93,7 @@ const samlValidatorSlice = createSlice({
       state.error = null;
       state.htmlFileUrl = '';
       state.xmlFileUrl = '';
+      state.testResults = null;
       state.runValidatorLoading = false;
       state.publishSamlSettingLoading = false;
     },
@@ -86,11 +106,13 @@ const samlValidatorSlice = createSlice({
       if (state.xmlFileUrl) URL.revokeObjectURL(state.xmlFileUrl);
       state.htmlFileUrl = '';
       state.xmlFileUrl = '';
+      state.testResults = null;
     });
     builder.addCase(fetchE2EReports.fulfilled, (state, action) => {
       state.runValidatorLoading = false;
       state.htmlFileUrl = action.payload.htmlFileUrl;
       state.xmlFileUrl = action.payload.xmlFileUrl;
+      state.testResults = action.payload.testResults;
     });
     builder.addCase(fetchE2EReports.rejected, (state, action) => {
       state.runValidatorLoading = false;
