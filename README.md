@@ -1,6 +1,6 @@
 # dbk-devex-saml-sso-toolkit
 
-A comprehensive SAML SSO Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with the Candescent production platform, in a local development environment. This toolkit acts as a simulator by replicating the key functionalities of SAML, such as generating SAML assertions. It allows developers to verify, during deployment, that their application's SAML integration works as expected and is fully compatible with the Candescent production platform.
+A comprehensive SAML SSO Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with the Candescent production platform, in a local development environment. This toolkit acts as a simulator by replicating the key functionalities of SAML, such as generating SAML assertions. It allows developers to verify, during development, that their application's SAML integration works as expected and is fully compatible with the Candescent production platform.
 
 ## Overview
 
@@ -14,7 +14,7 @@ This toolkit provides a complete SAML SSO testing environment with:
 ## Components
 
 ### Frontend (`sample-web-app/frontend`)
-- Displays a homepage containing the ACS URL, a non-editable vendor's public certificate, and user attributes (first name, last name, member ID, and email)
+- Displays a homepage containing the Test ACS URL field, Test encryption public certificate field, and mock user attributes (first name, last name, member ID, and email)
 - Provides an option to download the Candescent public key
 - Includes a **Run Simulation** button that triggers the `saml/login` API, which generates a SAML assertion that can be verified by the ACS endpoint
 - Displays a Success page when a successful response is received from the ACS endpoint
@@ -24,14 +24,14 @@ This toolkit provides a complete SAML SSO testing environment with:
 ### Backend (`sample-web-app/backend`)
 - Creates SAML assertion in XML format
 - Signs assertions using Candescent's private key
-- Encrypts the SAML assertion based on the vendor's public certificate
+- Encrypts the SAML assertion based on the vendor's test public certificate
 - Base64-encodes the SAML response and posts it to the vendor's ACS URL
 - Provides E2E testing endpoints for validation
 
 ### client-web-app (`client-web-app`)
-The `client-web-app` is a separate NestJS-based service that acts as the client-facing entry point for SAML SSO feature validation. It orchestrates calls to the SAML toolkit, validates tokens and metadata, and exposes simple APIs that downstream applications can use to test and integrate SAML SSO flows.
+The `client-web-app` is a separate NestJS-based service that acts as the client-facing entry point for SAML SSO feature validation. It includes dummy ACS URL and test encrypted public certificate to test the end to end flow.
 
-**Note**: This service is intended **only for testing purposes** and **is not included in the final deliverable ZIP toolkit**.
+**Note**: This service is intended **only for testing purposes**.
 
 ## Technologies Used
 
@@ -131,12 +131,13 @@ The frontend React app will automatically read the port from `sample-web-app/con
 - `npm run start:9000` - Start on port 9000
 
 Once both servers are running:
-- Access the **frontend** in your browser at `http://localhost:8000`
+- Access the **frontend** in your browser at `http://localhost:8000`.
+- Provide the `ACS URL` and `Test encryption public certficate` in the required fields. 
 - The frontend will communicate with the **backend** to generate SAML assertions, sign them with Candescent's private key, encrypt them using the vendor's public key, Base64-encode the resulting SAML response, and post it to the vendor's ACS URL
 
-**Important**: When entering the ACS URL in the frontend, use the complete endpoint path:
-- For client-web-app: `http://localhost:7080/api/saml-validator/acs`
-- The endpoint must include the full path `/api/saml-validator/acs`, not just `/api`
+**Important**: When entering the ACS URL in the frontend, use the complete endpoint path. 
+For example:
+- If you are using our client-web-app: `http://localhost:7080/api/saml-validator/acs`
 
 **Note for Docker Users**: If you're running the sample web app in a Docker container and need to connect to services running on your host machine (like `client-web-app`), replace `localhost` with `host.docker.internal` in the ACS URL:
 - **When running in Docker**: Use `http://host.docker.internal:7080/api/saml-validator/acs` instead of `http://localhost:7080/api/saml-validator/acs`
