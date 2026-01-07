@@ -19,8 +19,7 @@ try {
     console.log(`config.json not found, using default port ${port}`);
   }
 } catch (error) {
-  // Silently use default port if there's any error reading config
-  // This ensures no errors are shown to the user
+  console.warn(`Error reading config.json: ${error.message}, using default port ${port}`);
 }
 
 // Set PORT environment variable and start react-scripts

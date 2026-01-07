@@ -31,16 +31,17 @@ async function bootstrap() {
     },
   );
 
-  // Update package.json start script
+  // Update package.json start script to use the custom start.js script
+  // The start.js script reads the port dynamically from config.json
   try {
     const packageJsonPath = resolve(__dirname, FRONTEND_PACKAGE_JSON_PATH);
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     packageJson.scripts = {
       ...packageJson.scripts,
-      start: `PORT=${frontendPort} react-scripts start`,
+      start: 'node scripts/start.js',
     };
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2).trimEnd());
-    console.log(`Updated package.json start script with PORT=${frontendPort}`);
+    console.log(`Updated package.json start script to use dynamic port from config.json`);
   } catch (err: any) {
     console.warn('Could not update package.json:', err.message);
   }

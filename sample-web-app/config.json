@@ -1,4 +1,4 @@
 {
-  "frontendPort": 8080,
+  "frontendPort": 8000,
   "backendPort": 9000
 }
