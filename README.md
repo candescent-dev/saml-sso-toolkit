@@ -1,67 +1,26 @@
 # SAML SSO Toolkit
 
-A comprehensive SAML SSO Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with the Candescent production platform, in a local development environment. This toolkit acts as a simulator by replicating the key functionalities of SAML, such as generating SAML assertions. It allows developers to verify, during development, that their application's SAML integration works as expected and is fully compatible with the Candescent production platform.
+A local development toolkit for partners and financial institutions (FIs) to build and test SAML Single Sign-On (SSO) integrations. This toolkit simulates a SAML Identity Provider, allowing you to develop and validate your SAML client implementation before connecting to production environments.
 
-## Overview
+## Features
 
-This toolkit provides a complete SAML SSO testing environment with:
+- **Mock SAML Identity Provider** - Full SAML 2.0 authentication flow
+- **SAML Assertion Generation** - XML assertions with configurable attributes
+- **Digital Signing** - RS256-signed assertions using Candescent's private key
+- **Assertion Encryption** - Support for vendor-provided encryption certificates
+- **E2E Validation** - Automated tests to verify your integration
+- **Downloadable Artifacts** - Public key for signature verification
 
-- **Frontend**: React-based web application for configuring and running SAML simulations
-- **Backend**: NestJS service that generates, signs, and encrypts SAML assertions
-- **Client Web App**: Mock application to simulate vendor environments for testing
-- **Validator**: Comprehensive validation tool to test SAML configurations
+> **Note** - The following installation steps work across all operating systems, including macOS, Windows, and Linux.
 
-## Components
+## Quick Start - Local Machine Native Setup
 
-### Frontend (`sample-web-app/frontend`)
-- Displays a homepage containing the Test ACS URL field, Test encryption public certificate field, and mock user attributes (first name, last name, member ID, and email)
-- Provides an option to download the Candescent public key
-- Includes a **Run Simulation** button that triggers the `saml/login` API, which generates a SAML assertion that can be verified by the ACS endpoint
-- Displays a Success page when a successful response is received from the ACS endpoint
-- Displays an Error page with an appropriate error message when the ACS endpoint returns a failure response
-- **SAML Validator** page for validating and publishing SAML configuration settings
+### Prerequisites
 
-### Backend (`sample-web-app/backend`)
-- Creates SAML assertion in XML format
-- Signs assertions using Candescent's private key
-- Encrypts the SAML assertion based on the vendor's test public certificate
-- Base64-encodes the SAML response and posts it to the vendor's ACS URL
-- Provides E2E testing endpoints for validation
+- **Node.js** v20+ (LTS recommended)
+- **npm** (included with Node.js)
 
-### client-web-app (`client-web-app`)
-The `client-web-app` is a separate NestJS-based service that acts as the client-facing entry point for SAML SSO feature validation. It includes dummy ACS URL and test encrypted public certificate to test the end to end flow.
-
-**Note**: This service is intended **only for testing purposes**.
-
-## Technologies Used
-
-### Frontend (`sample-web-app/frontend`)
-- **Framework**: React (Create React App)
-- **State Management**: Redux Toolkit (`@reduxjs/toolkit`, `react-redux`)
-- **Routing**: React Router (`react-router-dom`)
-- **Styling**: CSS modules and standard CSS
-- **Testing**: Playwright
-
-### Backend (`sample-web-app/backend`)
-- **Framework**: NestJS (Node.js)
-- **Build & Runtime**: Node.js + npm
-- **Validation & Transformation**: `class-validator`, `class-transformer`
-- **Security / SAML**: `xml-crypto`, `xml-encryption`, `fast-xml-parser` for SAML assertion handling
-- **Testing**: Jest, Supertest
-
-### client-web-app (`client-web-app`)
-- **Framework**: NestJS (Node.js)
-- **HTTP / Integration**: `@nestjs/axios` and `rxjs` for calling external SAML toolkit endpoints
-- **Validation & Transformation**: `class-validator`, `class-transformer`
-- **Security / SAML Handling**: `xml-crypto`, `xpath` for working with SAML responses
-
-## Prerequisites
-
-- **Node.js**: Install a recent LTS version (v18 or higher recommended)
-- **npm**: Comes bundled with Node.js
-- **Docker** (optional): For containerized deployment
-
-## Clone the Project
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/candescent-dev/saml-sso-toolkit.git
@@ -77,52 +36,32 @@ cd saml-sso-toolkit
 > 
 > This will discard any local commits and match the remote exactly.
 
-## Configuration
+**Configure Backend & Frontend Port (Optional)**: By default the frontend application binds to port 8000, and the backend application binds to port 9000. However, if required, these ports can be changed to any other desired values. Update the port numbers in `sample-web-app/config.json` to new values for both frontend and backend, and restart the server to apply the updated ports.
 
-The sample web application includes a `config.json` file that allows you to configure the frontend and backend ports.
-
-**Location:**  
-`sample-web-app/config.json`
-
-**Example:**
-```json
-{
-  "frontendPort": 8000,
-  "backendPort": 9000
-}
-```
-
-### Port descriptions:
-
-- **frontendPort**: Port on which the sample frontend application runs (default: 8000). The frontend will automatically use this port when you run `npm start`. Change this value to use a different port dynamically.
-- **backendPort**: Port on which the backend server runs (default: 9000)
-
-**Important**: If you change the `frontendPort` in `config.json`, the frontend will automatically use the new port on the next start. No additional configuration is needed, and no errors will be shown.
-
-## Running the Sample Web App (Backend + Frontend)
-
-The sample application contains both the backend (NestJS) and frontend (React).
-
-### Start the Backend Server
-
-Open a terminal and run:
+### 2. Setup the Backend
 
 ```bash
 cd sample-web-app/backend
 npm install
-npm run start:dev
 ```
 
-This starts the NestJS backend server in watch mode. The default port is `http://localhost:9000` (unless configured otherwise in `config.json`).
+> **Note**: If the above command triggers a security error. Please Bypass the security using the command here: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
 
-**Verify backend health:**
 ```bash
-curl http://localhost:9000/api/health
+# Build and start
+npm run build
+npm start
 ```
 
-### Start the Frontend Server
+**Validation of server health (Optional)**: Validate the server health here - `http://localhost:9000/api/health`. If the backend port is modified, then open `http://localhost:{port}/api/health`
 
-Open a new terminal window and run:
+> **Note**: Default development certificates are included in `certs/` for convenience. For production use, generate your own keys (see Security Notice below).
+
+For development with hot-reload: Use `npm run start:dev` instead of `npm run build && npm start`
+
+### 3. Start the Frontend
+
+Open a new terminal:
 
 ```bash
 cd sample-web-app/frontend
@@ -130,287 +69,249 @@ npm install
 npm start
 ```
 
-The frontend React app will automatically read the port from `sample-web-app/config.json` and start on the configured port. By default, it uses port 8000 (`http://localhost:8000`).
+> **Note** - If the above command triggers a security error. Please Bypass the security using the command here: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
 
-**Note**: The start script automatically reads the `frontendPort` from `config.json`. If you change the port in `config.json`, the frontend will dynamically use the new port on the next start without any errors.
+**Validation of server health (Optional)**: Validate the server health here - `http://localhost:8000/api/health`. If the frontend port is modified, then open `http://localhost:{port}/api/health`
 
-**Alternative**: You can also use specific port commands:
-- `npm run start:8000` - Start on port 8000
-- `npm run start:8080` - Start on port 8080
-- `npm run start:9000` - Start on port 9000
+### 4. Open the Toolkit
 
-Once both servers are running:
-- Access the **frontend** in your browser at `http://localhost:8000`.
-- Provide the `ACS URL` and `Test encryption public certficate` in the required fields. 
-- The frontend will communicate with the **backend** to generate SAML assertions, sign them with Candescent's private key, encrypt them using the vendor's public key, Base64-encode the resulting SAML response, and post it to the vendor's ACS URL
+Navigate to `http://localhost:8000` (If not 8000 then `http://localhost:{port}`) in your browser.
 
-**Important**: When entering the ACS URL in the frontend, use the complete endpoint path. 
-For example:
-- If you are using our client-web-app: `http://localhost:7080/api/saml-validator/acs`
+## How It Works
 
-**Note for Docker Users**: If you're running the sample web app in a Docker container and need to connect to services running on your host machine (like `client-web-app`), replace `localhost` with `host.docker.internal` in the ACS URL:
-- **When running in Docker**: Use `http://host.docker.internal:7080/api/saml-validator/acs` instead of `http://localhost:7080/api/saml-validator/acs`
-- This is because `localhost` inside a Docker container refers to the container itself, not your host machine
-- `host.docker.internal` is a special DNS name that resolves to the host machine's IP address
+### Configuration Page
 
-## Running the Client Web App (Optional - for testing)
+When the toolkit loads, it displays:
 
-The `client-web-app` is a mock application that simulates a vendor's environment. It's useful for end-to-end testing.
+- **ACS URL** input field - Enter your vendor's Assertion Consumer Service URL
+- **Test encryption public certificate** field - Enter the vendor's public certificate in PEM format
+- **User attributes** (first name, last name, member ID, and email) - non-editable mock data
+- **Download Candescent Public Key** - For signature verification
 
-```bash
-cd client-web-app
-npm install
-npm run start:dev
-```
+### SAML Flow
 
-This starts the client web app on `http://localhost:7080/api` by default.
-
-## Application Flow
-
-1. User opens the web application (e.g., `http://localhost:8000`)
-
-2. The homepage displays:
-   - ACS URL input field
-   - Vendor's public certificate input field
-   - User attributes (first name, last name, member ID, and email) - non-editable
-   - Option to download the **Candescent Public Key** for signature verification
-
-3. User enters the vendor's **ACS URL** and **encryption public certificate**
+1. Enter the vendor's **ACS URL** and **encryption public certificate**
    - **ACS URL Example**: 
      - If running locally: `http://localhost:7080/api/saml-validator/acs`
      - If running in Docker: `http://host.docker.internal:7080/api/saml-validator/acs`
    - **Public Certificate**: Enter the vendor's public certificate in PEM format
 
-4. User clicks **Run Simulation** button that triggers the `saml/login` API, which generates a SAML assertion that can be verified by the ACS endpoint
+2. Click **Run Simulation** to generate and post the SAML assertion
 
-5. Backend processes the request:
+3. Backend processes the request:
    - Creates a SAML assertion in XML format
    - Signs it using Candescent's private key
    - Encrypts it using the vendor's public key
    - Base64-encodes the SAML response
    - Posts it to the vendor's ACS URL
 
-6. The system displays:
+4. The system displays:
    - A **Success page** upon receiving a successful response from the ACS endpoint
    - An **Error page** with an appropriate error message when the ACS endpoint returns a failure response
 
-## SAML Validator
+### SAML Endpoints
 
-The toolkit includes a comprehensive SAML Validator page accessible at `/samlValidator` that allows you to:
+The toolkit exposes standard SAML endpoints:
 
-- Run E2E validation tests
-- View validation reports (HTML and XML)
-- Download validation reports
-- Publish SAML configuration settings
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/saml/login` | POST | Generates and posts SAML assertion to ACS URL |
+| `/api/saml/public-key` | GET | Returns Candescent's public key for signature verification |
+| `/api/health` | GET | Health check |
 
-To access the validator:
+## Validation
+
+### Running the Validator
+
 1. Navigate to `http://localhost:8000/samlValidator`
-2. Click **Run Validator** to start validation
+2. Click **Run Validator** to execute E2E tests
 3. Review the validation report
 4. Download reports if needed
 5. Publish SAML settings after successful validation
 
-## Project Structure
+The validator tests:
+- SAML assertion generation
+- Digital signing
+- Assertion encryption
+- ACS endpoint communication
+- Response validation
 
-```
-saml-sso-toolkit/
-├── client-web-app/
-│   ├── certs/
-│   ├── src/
-│   │   ├── samlValidator/
-│   │   └── ...
-│   ├── test/
-│   ├── package.json
-│   └── README.md
-├── documentation/
-│   └── SAML Toolkit - User Guide-v1.0.docx
-├── sample-web-app/
-│   ├── backend/
-│   │   ├── certs/
-│   │   ├── src/
-│   │   │   ├── saml/
-│   │   │   ├── e2eTest/
-│   │   │   ├── publishConfig/
-│   │   │   └── ...
-│   │   ├── test/
-│   │   ├── package.json
-│   │   └── README.md
-│   ├── frontend/
-│   │   ├── src/
-│   │   │   ├── pages/
-│   │   │   │   ├── Home/
-│   │   │   │   ├── SamlValidator/
-│   │   │   │   ├── Success/
-│   │   │   │   └── Error/
-│   │   │   └── ...
-│   │   ├── public/
-│   │   ├── package.json
-│   │   └── README.md
-│   ├── test/
-│   │   └── e2e/
-│   ├── config.json
-│   ├── Dockerfile
-│   ├── package.json
-│   └── README.md
-├── scripts/
-│   ├── local-build.sh
-│   ├── local-build.ps1
-│   ├── shell/
-│   │   ├── init.sh
-│   │   ├── run-web-app.sh
-│   │   └── selftest.sh
-│   ├── ps/
-│   │   ├── init.ps1
-│   │   ├── run-web-app.ps1
-│   │   └── selftest.ps1
-│   └── README.md
-└── README.md
+### Validation Reports
+
+After running the validator, download:
+- **e2e-report.html** - Human-readable test report
+- **jest-e2e.xml** - JUnit XML for CI integration
+
+## Configuration
+
+### Port Configuration
+
+Edit `sample-web-app/config.json`:
+
+```json
+{
+  "frontendPort": 8000,
+  "backendPort": 9000
+}
 ```
 
-## Directory Descriptions
+Values can be changed to any available ports on your system.
 
-### `client-web-app/`
-The client-facing web application. It serves as a mock vendor environment for testing SAML SSO flows. **Note**: This is for testing purposes only and is not included in the final deliverable.
+## Alternative Setup: Docker
 
-### `documentation/`
-Contains user guides and documentation for the SAML toolkit.
-
-### `sample-web-app/`
-A complete web application that includes both frontend and backend modules. This serves as a reference implementation for the overall system.
-
-#### `sample-web-app/backend/`
-NestJS backend service that handles SAML assertion generation, signing, and encryption.
-
-#### `sample-web-app/frontend/`
-React frontend application for configuring and running SAML simulations.
-
-#### `sample-web-app/config.json`
-Configuration file for frontend and backend ports.
-
-#### `sample-web-app/Dockerfile`
-Docker configuration for containerized deployment.
-
-### `scripts/`
-Utility scripts to:
-- Local Build in order to generate ZIP archive
-- Create Docker images
-- Containerize the application
-- Run health checks on the deployed system
-
-These scripts streamline local development and deployment workflows.
-
-## Running Tests
-
-### Backend Tests
+For quick testing without installing Node.js, use the pre-built Docker image:
 
 ```bash
-cd sample-web-app/backend
+# Pull the image
+docker pull ghcr.io/candescent-dev/saml-sso-toolkit:latest
 
-# Unit tests
-npm test
-
-# E2E tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
+# Run the container
+docker run -p 9000:9000 -p 8000:8000 ghcr.io/candescent-dev/saml-sso-toolkit:latest
 ```
 
-### Frontend E2E Tests
+**Note for ARM64 users (Apple Silicon)**: The pre-built image is currently built for linux/amd64. If you encounter a "no matching manifest" error, use the `--platform` flag:
 
 ```bash
-cd sample-web-app
-
-# Install Playwright browsers (first time only)
-npm run playwright:install
-
-# Run E2E tests
-npm run test:e2e
+docker pull --platform linux/amd64 ghcr.io/candescent-dev/saml-sso-toolkit:latest
+docker run --platform linux/amd64 -p 8000:8000 -p 9000:9000 ghcr.io/candescent-dev/saml-sso-toolkit:latest
 ```
 
-## Building and Packaging
+Alternatively, build locally for your native platform (faster):
 
-### Local Build
-
-To build the project and create a distributable ZIP package:
-
-**Linux/macOS:**
 ```bash
-./scripts/local-build.sh
+docker build -t saml-sso-toolkit:latest -f sample-web-app/Dockerfile sample-web-app
+docker run -p 8000:8000 -p 9000:9000 saml-sso-toolkit:latest
 ```
 
-**Windows PowerShell:**
-```powershell
-.\scripts\local-build.ps1
-```
-
-This will:
-- Build the frontend and backend
-- Run tests
-- Create a ZIP archive in the `dist/` folder: `saml-sso-toolkit.zip`
-
-### Docker Build
-
-To build and run using Docker:
+Then open `http://localhost:8000` in your browser.
 
 **Important**: When running the application in Docker and connecting to services on your host machine (like `client-web-app`), use `host.docker.internal` instead of `localhost` in ACS URLs. For example:
 - Use: `http://host.docker.internal:7080/api/saml-validator/acs`
 - Instead of: `http://localhost:7080/api/saml-validator/acs`
 
-**Linux/macOS:**
+### Docker Port Configuration
+
+If you want to use custom ports (e.g., change frontend from 8000 to 8080):
+
+1. Update the config file - Edit `sample-web-app/config.json`:
+
+```json
+{
+  "frontendPort": 8080,
+  "backendPort": 9000
+}
+```
+
+2. Mount the config file when running the container:
+
 ```bash
-cd scripts/shell
-./init.sh          # Build Docker image
-./run-web-app.sh   # Run the application
-./selftest.sh      # Verify it's working
+# Linux/macOS
+docker run -p 9000:9000 -p 8080:8080 -v "$(pwd)/sample-web-app/config.json:/app/config.json" ghcr.io/candescent-dev/saml-sso-toolkit:latest
+
+# Windows PowerShell
+docker run -p 9000:9000 -p 8080:8080 -v "${PWD}\sample-web-app\config.json:/app/config.json" ghcr.io/candescent-dev/saml-sso-toolkit:latest
+
+# Windows CMD
+docker run -p 9000:9000 -p 8080:8080 -v "%CD%\sample-web-app\config.json:/app/config.json" ghcr.io/candescent-dev/saml-sso-toolkit:latest
 ```
 
-**Windows PowerShell:**
+**Note for Windows users**: If you encounter path resolution issues (e.g., "not a directory" or "mount" errors), ensure you're running the command from the project root directory where `sample-web-app/config.json` exists. If the issue persists, Docker Desktop may need the file path to be shared. You can use an absolute path as a workaround:
+
 ```powershell
-cd scripts\ps
-.\init.ps1          # Build Docker image
-.\run-web-app.ps1   # Run the application
-.\selftest.ps1      # Verify it's working
+# Windows PowerShell - Using absolute path (replace with your actual path)
+docker run -p 9000:9000 -p 8080:8080 -v "C:/Users/YourUsername/path/to/saml-sso-toolkit/sample-web-app/config.json:/app/config.json" ghcr.io/candescent-dev/saml-sso-toolkit:latest
 ```
 
-## Deployment
+### Build Locally (Optional)
 
-The toolkit can be deployed using:
+If you prefer to build the Docker image yourself:
 
-1. **Docker**: Use the provided Dockerfile and scripts
-2. **ZIP Archive**: Extract the generated ZIP and follow the included instructions
-3. **Manual**: Follow the "Running the Sample Web App" section above
+```bash
+git clone https://github.com/candescent-dev/saml-sso-toolkit.git
+cd saml-sso-toolkit
+docker build -t saml-sso-toolkit -f sample-web-app/Dockerfile sample-web-app
+docker run -p 9000:9000 -p 8000:8000 saml-sso-toolkit
+```
 
-## CI/CD Pipeline
+Building locally will automatically build for your native platform (ARM64 on Apple Silicon, AMD64 on Intel/AMD).
 
-The project includes GitHub Actions workflows for:
-- Continuous Integration (CI): Runs on push and pull requests
-- Continuous Deployment (CD): Runs on main branch
-- Release: Creates and uploads artifacts to Artifactory
+## Project Structure
+
+```
+saml-sso-toolkit/
+├── sample-web-app/
+│   ├── frontend/          # React UI for configuration
+│   ├── backend/           # NestJS mock SAML Identity Provider
+│   ├── test/              # Playwright E2E tests
+│   └── config.json        # Port configuration
+├── client-web-app/        # Mock vendor environment (testing only)
+└── sample-web-app/Dockerfile  # Multi-stage build for Docker users
+```
+
+## Component Overview
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Frontend | React, Redux Toolkit | Configuration UI and flow initiator |
+| Backend | NestJS | Mock SAML Identity Provider |
+| client-web-app | NestJS | Mock vendor environment for testing |
+
+### About the client-web-app
+
+The `client-web-app` is a separate NestJS-based service that acts as a mock vendor environment for testing SAML SSO flows. It includes dummy ACS URL and test encryption public certificate to test the end-to-end flow.
+
+> **Note for partners/FIs**: You typically don't need to run the client-web-app directly. Instead:
+> - Use the sample-web-app as a mock IdP to test your own application
+> - Run the E2E tests via Playwright if you want automated verification
+> - The client-web-app can serve as reference code for implementing SAML client logic
 
 ## Troubleshooting
 
-### Port Already in Use
-If you encounter port conflicts, update the ports in `sample-web-app/config.json`.
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Port already in use | Another service running | Edit `config.json` to change ports |
+| Backend won't start | Missing private key | Default keys should be in `certs/`. If missing, check certificate files |
+| Frontend not connecting to backend | Backend not running | Ensure backend is started on the configured port |
+| Token validation fails | Certificate mismatch | Re-download public key from the toolkit |
+| Docker pull: "unauthorized" | Package visibility | The package must be public. Verify at https://github.com/orgs/candescent-dev/packages |
+| Docker pull: "no matching manifest for linux/arm64" | Image built for AMD64 only | Use `--platform linux/amd64` flag or build locally (see Docker Setup) |
 
-### Backend Not Starting
-- Verify Node.js version (v18+ recommended)
-- Check that port 9000 (or configured port) is available
-- Review backend logs for errors
+## Security Notice
 
-### Frontend Not Connecting to Backend
-- Ensure backend is running
-- Verify the backend URL in frontend configuration
-- Check CORS settings if needed
+### Default Development Certificates
 
-### Certificate Issues
-- Ensure certificates are in the correct format (PEM)
-- Verify certificate paths in the code
-- Check that private and public keys match
+This toolkit includes pre-generated RSA keys in `sample-web-app/backend/certs/` for convenience:
 
-## Support
+- ✅ Safe for local development and testing
+- ❌ NOT secure for production use
+- ❌ NOT secure for QA/staging environments
 
-For issues, questions, or contributions, please refer to the project documentation or contact the development team.
+### For Production Use
+
+If deploying to production or QA, generate your own keys using appropriate security practices.
+
+## Development
+
+### Running Tests
+
+```bash
+# Backend unit tests
+cd sample-web-app/backend
+npm test
+
+# Backend E2E tests
+npm run test:e2e
+
+# Frontend E2E tests (requires Playwright)
+cd sample-web-app
+npx playwright test
+```
+
+## Tech Stack
+
+- **Frontend**: React, Redux Toolkit, React Router
+- **Backend**: NestJS, xml-crypto, xml-encryption, fast-xml-parser
+- **Testing**: Jest, Supertest, Playwright
 
 ## Contributing
 
@@ -419,4 +320,3 @@ This repository is a **read-only mirror**. We do not accept pull requests. Pleas
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
