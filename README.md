@@ -214,10 +214,6 @@ To access the validator:
 
 ```
 saml-sso-toolkit/
-├── .github/
-│   └── workflows/
-│       ├── ci-cd.yaml
-│       └── release.yaml
 ├── client-web-app/
 │   ├── certs/
 │   ├── src/
@@ -272,9 +268,6 @@ saml-sso-toolkit/
 ```
 
 ## Directory Descriptions
-
-### `.github/`
-Contains CI/CD pipeline configurations and GitHub Actions workflows. This automates testing, building, and deployment processes.
 
 ### `client-web-app/`
 The client-facing web application. It serves as a mock vendor environment for testing SAML SSO flows. **Note**: This is for testing purposes only and is not included in the final deliverable.
