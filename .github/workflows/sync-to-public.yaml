@@ -308,35 +308,54 @@ jobs:
             exit 0
           fi
           
-          # Exclude sync-to-public.yaml from being synced (internal workflow only)
-          echo "Excluding internal workflow file from sync..."
+          # Exclude internal workflow files from being synced (internal workflows only)
+          # Files excluded: sync-to-public.yaml, ci-cd.yaml, release.yaml
+          echo "Excluding internal workflow files from sync..."
           
-          # First, handle existing file in public repo by cloning and removing it
+          # First, handle existing files in public repo by cloning and removing them
           TEMP_CLONE=$(mktemp -d)
           if git clone --depth 1 --branch $TARGET_BRANCH "https://x-access-token:${GH_TOKEN}@github.com/${{ env.PUBLIC_REPO }}.git" "$TEMP_CLONE" 2>/dev/null; then
-            if [ -f "$TEMP_CLONE/.github/workflows/sync-to-public.yaml" ]; then
-              echo "Removing sync-to-public.yaml from public repo..."
-              cd "$TEMP_CLONE"
-              git config user.name "candescent-sync-bot[bot]"
-              git config user.email "${{ secrets.SYNC_APP_ID }}+candescent-sync-bot[bot]@users.noreply.github.com"
-              git rm .github/workflows/sync-to-public.yaml
-              git commit -m "Remove internal sync workflow" --no-verify || true
+            cd "$TEMP_CLONE"
+            NEEDS_PUSH=false
+            git config user.name "candescent-sync-bot[bot]"
+            git config user.email "${{ secrets.SYNC_APP_ID }}+candescent-sync-bot[bot]@users.noreply.github.com"
+            
+            for WORKFLOW_FILE in sync-to-public.yaml ci-cd.yaml release.yaml; do
+              if [ -f ".github/workflows/$WORKFLOW_FILE" ]; then
+                echo "Removing $WORKFLOW_FILE from public repo..."
+                git rm ".github/workflows/$WORKFLOW_FILE"
+                NEEDS_PUSH=true
+              fi
+            done
+            
+            if [ "$NEEDS_PUSH" = "true" ]; then
+              git commit -m "Remove internal workflow files" --no-verify || true
               git push origin $TARGET_BRANCH || true
-              cd - > /dev/null
             fi
+            cd - > /dev/null
             rm -rf "$TEMP_CLONE"
           fi
           
-          # Now sync internal repo to public, excluding sync-to-public.yaml
+          # Now sync internal repo to public, excluding internal workflow files
           # Create a filtered commit that preserves git history
           CURRENT_COMMIT=$(git rev-parse HEAD)
           
-          # Check if sync-to-public.yaml exists in the current commit
-          if git ls-tree -r --name-only "$CURRENT_COMMIT" | grep -q "^\.github/workflows/sync-to-public\.yaml$"; then
-            echo "sync-to-public.yaml found in commit, creating filtered commit..."
+          # Check if any internal workflow files exist in the current commit
+          FOUND_INTERNAL_WORKFLOWS=false
+          for WORKFLOW_FILE in sync-to-public.yaml ci-cd.yaml release.yaml; do
+            if git ls-tree -r --name-only "$CURRENT_COMMIT" | grep -q "^\.github/workflows/$WORKFLOW_FILE$"; then
+              FOUND_INTERNAL_WORKFLOWS=true
+              break
+            fi
+          done
+          
+          if [ "$FOUND_INTERNAL_WORKFLOWS" = "true" ]; then
+            echo "Internal workflow files found in commit, creating filtered commit..."
             
-            # Remove sync-to-public.yaml from index (doesn't affect working directory)
-            git rm --cached .github/workflows/sync-to-public.yaml 2>/dev/null || true
+            # Remove internal workflow files from index (doesn't affect working directory)
+            for WORKFLOW_FILE in sync-to-public.yaml ci-cd.yaml release.yaml; do
+              git rm --cached ".github/workflows/$WORKFLOW_FILE" 2>/dev/null || true
+            done
             
             # Verify we have all essential files before creating commit
             if [ ! -f "README.md" ] || [ ! -d "sample-web-app" ]; then
@@ -357,18 +376,22 @@ jobs:
               exit 1
             fi
             
-            # Verify sync-to-public.yaml is NOT in the filtered commit
-            if git ls-tree -r --name-only "$SYNC_COMMIT" | grep -q "^\.github/workflows/sync-to-public\.yaml$"; then
-              echo "⚠️  Warning: sync-to-public.yaml still in filtered commit"
-            else
-              echo "✅ Verified: sync-to-public.yaml excluded from filtered commit"
-            fi
+            # Verify internal workflow files are NOT in the filtered commit
+            for WORKFLOW_FILE in sync-to-public.yaml ci-cd.yaml release.yaml; do
+              if git ls-tree -r --name-only "$SYNC_COMMIT" | grep -q "^\.github/workflows/$WORKFLOW_FILE$"; then
+                echo "⚠️  Warning: $WORKFLOW_FILE still in filtered commit"
+              else
+                echo "✅ Verified: $WORKFLOW_FILE excluded from filtered commit"
+              fi
+            done
             
-            # Restore sync-to-public.yaml in index immediately (for internal repo)
-            git reset HEAD .github/workflows/sync-to-public.yaml 2>/dev/null || true
-            git checkout -- .github/workflows/sync-to-public.yaml 2>/dev/null || true
+            # Restore internal workflow files in index immediately (for internal repo)
+            for WORKFLOW_FILE in sync-to-public.yaml ci-cd.yaml release.yaml; do
+              git reset HEAD ".github/workflows/$WORKFLOW_FILE" 2>/dev/null || true
+              git checkout -- ".github/workflows/$WORKFLOW_FILE" 2>/dev/null || true
+            done
           else
-            echo "sync-to-public.yaml not in commit, using current commit as-is"
+            echo "No internal workflow files in commit, using current commit as-is"
             SYNC_COMMIT="$CURRENT_COMMIT"
           fi
           
@@ -399,7 +422,7 @@ jobs:
           set -e
           
           if [ $PUSH_EXIT_CODE -eq 0 ]; then
-            echo "✅ Synced to public repository (sync-to-public.yaml excluded)"
+            echo "✅ Synced to public repository (internal workflows excluded)"
             echo "$PUSH_OUTPUT"
           else
             echo "❌ Push failed (exit code: $PUSH_EXIT_CODE)"
