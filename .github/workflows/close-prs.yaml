@@ -6,6 +6,8 @@ on:
 
 jobs:
   close-pr:
+    # Only run on the public repo (candescent-dev), not on internal repos
+    if: github.repository_owner == 'candescent-dev'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
