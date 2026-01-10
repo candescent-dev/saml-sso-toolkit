@@ -194,18 +194,11 @@ jobs:
       - name: Show Running Containers
         run: docker ps -a
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - name: Upload release ZIP
+        uses: actions/upload-artifact@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v3
-        
-      - name: Upload ZIP to Artifactory
-        run : |
-          jfrog rt  u "saml-sso-toolkit.zip" digitalbanking-rpm-group/saml/${VERSION}/ --url https://candescent.jfrog.io/artifactory --user ${{secrets.ARTIFACTORY_USERNAME}} --password ${{secrets.ARTIFACTORY_TOKEN}}
+          name: saml-sso-toolkit-${{ env.VERSION }}
+          path: saml-sso-toolkit.zip
 
       - name: Cleanup temporary files
         if: always()
