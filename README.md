@@ -1,4 +1,4 @@
-# dbk-devex-saml-sso-toolkit
+# SAML SSO Toolkit
 
 A comprehensive SAML SSO Toolkit Simulator to test and validate the complete SAML Single Sign-On (SSO) flow, compatible with the Candescent production platform, in a local development environment. This toolkit acts as a simulator by replicating the key functionalities of SAML, such as generating SAML assertions. It allows developers to verify, during development, that their application's SAML integration works as expected and is fully compatible with the Candescent production platform.
 
@@ -64,9 +64,18 @@ The `client-web-app` is a separate NestJS-based service that acts as the client-
 ## Clone the Project
 
 ```bash
-git clone https://github.com/dfh-digital-insight/dbk-devex-saml-sso-toolkit.git
-cd dbk-devex-saml-sso-toolkit
+git clone https://github.com/candescent-dev/saml-sso-toolkit.git
+cd saml-sso-toolkit
 ```
+
+> **Note:** This repository is automatically synced from an internal repository using force-push. If you encounter a "divergent branches" error when pulling, reset your local branch to match the remote:
+> 
+> ```bash
+> git fetch origin
+> git reset --hard origin/main
+> ```
+> 
+> This will discard any local commits and match the remote exactly.
 
 ## Configuration
 
@@ -204,7 +213,7 @@ To access the validator:
 ## Project Structure
 
 ```
-dbk-devex-saml-sso-toolkit/
+saml-sso-toolkit/
 ├── .github/
 │   └── workflows/
 │       ├── ci-cd.yaml
@@ -410,7 +419,11 @@ If you encounter port conflicts, update the ports in `sample-web-app/config.json
 
 For issues, questions, or contributions, please refer to the project documentation or contact the development team.
 
+## Contributing
+
+This repository is a **read-only mirror**. We do not accept pull requests. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for how to provide feedback.
+
 ## License
 
-This project is proprietary software developed for Candescent platform integration.
+MIT License - see [LICENSE](LICENSE) for details.
 

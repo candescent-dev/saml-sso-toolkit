@@ -1,0 +1,444 @@
+name: Sync to Public GitHub
+
+# Required Secrets (add in repository settings):
+#   SYNC_APP_ID: GitHub App ID (numeric)
+#   SYNC_APP_PRIVATE_KEY: Complete private key (including BEGIN/END lines)
+#   SYNC_INSTALLATION_ID: Installation ID (from https://github.com/organizations/candescent-dev/settings/installations)
+
+# Triggers: push to main, or manual dispatch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (test without pushing)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      test_branch:
+        description: 'Test on a different branch (optional, for testing)'
+        required: false
+        type: string
+
+env:
+  PUBLIC_REPO: "candescent-dev/saml-sso-toolkit"
+  DRY_RUN: ${{ github.event.inputs.dry_run == 'true' }}
+  TEST_BRANCH: ${{ github.event.inputs.test_branch || 'main' }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes, or manual dispatch
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout internal repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Don't persist credentials - we'll use our own token
+          persist-credentials: false
+
+      - name: Setup Node.js for token generation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Generate GitHub App installation token
+        id: app-token
+        env:
+          APP_ID: ${{ secrets.SYNC_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+          INSTALLATION_ID: ${{ secrets.SYNC_INSTALLATION_ID }}
+        run: |
+          # Validate environment variables
+          if [ -z "$APP_ID" ] || [ -z "$PRIVATE_KEY" ] || [ -z "$INSTALLATION_ID" ]; then
+            echo "❌ Error: Missing required environment variables"
+            exit 1
+          fi
+          
+          # Save private key to file
+          echo "$PRIVATE_KEY" > private-key.pem
+          chmod 600 private-key.pem
+          
+          if [ ! -f private-key.pem ] || [ $(wc -c < private-key.pem) -lt 100 ]; then
+            echo "❌ Error: Private key file is invalid"
+            exit 1
+          fi
+          
+          # Generate token script
+          cat > generate-token.js << 'EOF'
+          const crypto = require('crypto');
+          const https = require('https');
+          const fs = require('fs');
+          
+          const appId = process.env.APP_ID;
+          const privateKey = fs.readFileSync('private-key.pem', 'utf8');
+          const installationId = process.env.INSTALLATION_ID;
+          
+          if (!appId || !privateKey || !installationId) {
+            console.error('❌ Missing required environment variables');
+            process.exit(1);
+          }
+          
+          // Generate JWT
+          const now = Math.floor(Date.now() / 1000);
+          const payload = { iat: now - 60, exp: now + (10 * 60), iss: appId };
+          const header = { alg: 'RS256', typ: 'JWT' };
+          
+          const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
+          const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+          const signatureInput = `${encodedHeader}.${encodedPayload}`;
+          
+          const sign = crypto.createSign('RSA-SHA256');
+          sign.update(signatureInput);
+          const signature = sign.sign(privateKey, 'base64url');
+          const jwt = `${signatureInput}.${signature}`;
+          
+          // Exchange JWT for installation token
+          const req = https.request({
+            hostname: 'api.github.com',
+            path: `/app/installations/${installationId}/access_tokens`,
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${jwt}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'GitHub-Actions-Sync'
+            }
+          }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              if (res.statusCode === 201) {
+                try {
+                  const response = JSON.parse(data);
+                  if (response.token && response.token.startsWith('ghs_') && response.token.length >= 40) {
+                    process.stdout.write(response.token + '\n');
+                    process.exit(0);
+                  } else {
+                    console.error('❌ Invalid token format');
+                    process.exit(1);
+                  }
+                } catch (e) {
+                  console.error('❌ Failed to parse response');
+                  process.exit(1);
+                }
+              } else {
+                console.error(`❌ Failed to get token (HTTP ${res.statusCode})`);
+                console.error(data);
+                process.exit(1);
+              }
+            });
+          });
+          
+          req.on('error', (error) => {
+            console.error('❌ Request error:', error.message);
+            process.exit(1);
+          });
+          
+          req.write(JSON.stringify({ repositories: ['saml-sso-toolkit'] }));
+          req.end();
+          EOF
+          
+          # Generate token
+          INSTALLATION_TOKEN=$(node generate-token.js 2>token-errors.log)
+          SCRIPT_EXIT_CODE=$?
+          
+          if [ $SCRIPT_EXIT_CODE -ne 0 ]; then
+            echo "❌ Token generation failed"
+            if [ -s token-errors.log ]; then
+              cat token-errors.log
+            fi
+            rm -f token-errors.log
+            exit 1
+          fi
+          
+          # Validate token format
+          INSTALLATION_TOKEN=$(echo "$INSTALLATION_TOKEN" | tr -d '\n\r ' | head -1)
+          rm -f token-errors.log
+          
+          if [ -z "$INSTALLATION_TOKEN" ] || [ ${#INSTALLATION_TOKEN} -lt 40 ] || [ "${INSTALLATION_TOKEN:0:4}" != "ghs_" ]; then
+            echo "❌ Invalid token format"
+            exit 1
+          fi
+          
+          echo "✅ Installation token generated"
+          echo "::add-mask::$INSTALLATION_TOKEN"
+          # Write token to output (ensure no trailing whitespace/newlines)
+          echo "token=$(echo -n "$INSTALLATION_TOKEN" | tr -d '\n\r ')" >> $GITHUB_OUTPUT
+
+      - name: Verify GitHub App token
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          # Trim any whitespace that might have been introduced
+          GH_TOKEN=$(echo -n "$GH_TOKEN" | tr -d '\n\r ')
+          
+          if [ -z "$GH_TOKEN" ]; then
+            echo "❌ Error: GitHub App token is empty"
+            exit 1
+          fi
+          
+          echo "Token received: ${#GH_TOKEN} characters, starts with ${GH_TOKEN:0:10}..."
+          
+          # Verify repository access
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ env.PUBLIC_REPO }})
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Error: Cannot access repository (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          
+          echo "✅ Token verified - repository access confirmed"
+
+      - name: Push to public repo
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          DRY_RUN: ${{ env.DRY_RUN }}
+          TARGET_BRANCH: ${{ env.TEST_BRANCH }}
+        run: |
+          # Trim any whitespace from token (GitHub Actions might add it)
+          GH_TOKEN=$(echo -n "$GH_TOKEN" | tr -d '\n\r ')
+          
+          # Override any git config set by checkout action
+          # Use --local to avoid conflicts with global config
+          git config --local user.name "candescent-sync-bot[bot]"
+          git config --local user.email "${{ secrets.SYNC_APP_ID }}+candescent-sync-bot[bot]@users.noreply.github.com"
+          
+          # Disable ALL credential helpers (checkout action might set some)
+          git config --local --unset-all credential.helper 2>/dev/null || true
+          git config --local credential.helper ""
+          git config --global --unset-all credential.helper 2>/dev/null || true
+          
+          # Ensure we're not using the default GITHUB_TOKEN
+          unset GITHUB_TOKEN || true
+          
+          # Remove existing remote if it exists
+          git remote remove public 2>/dev/null || true
+          
+          # Verify token is set and valid format
+          if [ -z "$GH_TOKEN" ]; then
+            echo "❌ Error: GH_TOKEN is empty"
+            exit 1
+          fi
+          
+          if [ ${#GH_TOKEN} -lt 40 ] || [ "${GH_TOKEN:0:4}" != "ghs_" ]; then
+            echo "❌ Error: Invalid token format"
+            echo "Token length: ${#GH_TOKEN}"
+            echo "Token starts with: ${GH_TOKEN:0:10}"
+            exit 1
+          fi
+          
+          echo "Token verified: ${#GH_TOKEN} characters, starts with ${GH_TOKEN:0:10}..."
+          
+          # Add remote with token
+          # Note: GitHub App tokens are base64url encoded and safe for URLs
+          git remote add public "https://x-access-token:${GH_TOKEN}@github.com/${{ env.PUBLIC_REPO }}.git"
+          
+          # Verify remote is configured
+          REMOTE_URL=$(git remote get-url public)
+          echo "Remote configured: ${REMOTE_URL:0:60}..."
+          
+          # Test connection and diagnose issues
+          echo "Testing git connection to ${{ env.PUBLIC_REPO }}..."
+          echo "Target branch: $TARGET_BRANCH"
+          
+          # Test connection - try listing all refs first (works even for empty repos)
+          set +e  # Don't exit on error so we can capture output
+          GIT_LS_OUTPUT=$(git ls-remote public 2>&1)
+          GIT_LS_EXIT_CODE=$?
+          set -e
+          
+          if [ $GIT_LS_EXIT_CODE -ne 0 ]; then
+            echo "❌ Error: Cannot access repository (exit code: $GIT_LS_EXIT_CODE)"
+            echo "Git output:"
+            echo "$GIT_LS_OUTPUT"
+            echo ""
+            
+            # Check for specific error patterns
+            if echo "$GIT_LS_OUTPUT" | grep -qi "Repository not found\|404"; then
+              echo "Diagnosis: Repository not found"
+              echo "1. Verify repository exists: https://github.com/${{ env.PUBLIC_REPO }}"
+              echo "2. Check if repository name is correct: saml-sso-toolkit"
+            elif echo "$GIT_LS_OUTPUT" | grep -qi "permission\|denied\|forbidden\|403"; then
+              echo "Diagnosis: Permission denied"
+              echo "1. Verify GitHub App is installed: https://github.com/organizations/candescent-dev/settings/installations"
+              echo "2. Ensure App has 'Contents: Write' and 'Workflows: Write' permissions"
+            elif echo "$GIT_LS_OUTPUT" | grep -qi "authentication\|unauthorized\|401"; then
+              echo "Diagnosis: Authentication failed"
+              echo "1. Token may be invalid or expired"
+              echo "2. Check token format (should start with 'ghs_')"
+            fi
+            
+            echo ""
+            echo "General diagnostics:"
+            echo "1. Repository: https://github.com/${{ env.PUBLIC_REPO }}"
+            echo "2. GitHub App installation: https://github.com/organizations/candescent-dev/settings/installations"
+            echo "3. Token length: ${#GH_TOKEN} characters"
+            echo "4. Token prefix: ${GH_TOKEN:0:10}..."
+            exit 1
+          fi
+          
+          echo "✅ Git connection successful"
+          if [ -n "$GIT_LS_OUTPUT" ]; then
+            echo "Repository refs:"
+            echo "$GIT_LS_OUTPUT" | head -5
+          else
+            echo "Repository appears to be empty (no refs found)"
+          fi
+          
+          # Check if this is a dry run
+          if [ "$DRY_RUN" = "true" ]; then
+            echo ""
+            echo "🔍 DRY RUN MODE - Testing only, no push will be performed"
+            echo ""
+            echo "Would push:"
+            echo "  From: $(git rev-parse --abbrev-ref HEAD) ($(git rev-parse --short HEAD))"
+            echo "  To:   ${{ env.PUBLIC_REPO }}:$TARGET_BRANCH"
+            echo ""
+            echo "✅ Dry run completed successfully - all checks passed!"
+            echo "To perform the actual sync, run this workflow with dry_run=false"
+            exit 0
+          fi
+          
+          # Exclude sync-to-public.yaml from being synced (internal workflow only)
+          echo "Excluding internal workflow file from sync..."
+          
+          # First, handle existing file in public repo by cloning and removing it
+          TEMP_CLONE=$(mktemp -d)
+          if git clone --depth 1 --branch $TARGET_BRANCH "https://x-access-token:${GH_TOKEN}@github.com/${{ env.PUBLIC_REPO }}.git" "$TEMP_CLONE" 2>/dev/null; then
+            if [ -f "$TEMP_CLONE/.github/workflows/sync-to-public.yaml" ]; then
+              echo "Removing sync-to-public.yaml from public repo..."
+              cd "$TEMP_CLONE"
+              git config user.name "candescent-sync-bot[bot]"
+              git config user.email "${{ secrets.SYNC_APP_ID }}+candescent-sync-bot[bot]@users.noreply.github.com"
+              git rm .github/workflows/sync-to-public.yaml
+              git commit -m "Remove internal sync workflow" --no-verify || true
+              git push origin $TARGET_BRANCH || true
+              cd - > /dev/null
+            fi
+            rm -rf "$TEMP_CLONE"
+          fi
+          
+          # Now sync internal repo to public, excluding sync-to-public.yaml
+          # Create a filtered commit that preserves git history
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          
+          # Check if sync-to-public.yaml exists in the current commit
+          if git ls-tree -r --name-only "$CURRENT_COMMIT" | grep -q "^\.github/workflows/sync-to-public\.yaml$"; then
+            echo "sync-to-public.yaml found in commit, creating filtered commit..."
+            
+            # Remove sync-to-public.yaml from index (doesn't affect working directory)
+            git rm --cached .github/workflows/sync-to-public.yaml 2>/dev/null || true
+            
+            # Verify we have all essential files before creating commit
+            if [ ! -f "README.md" ] || [ ! -d "sample-web-app" ]; then
+              echo "❌ Error: Essential files missing, aborting sync"
+              git reset HEAD .github/workflows/sync-to-public.yaml 2>/dev/null || true
+              exit 1
+            fi
+            
+            # Create commit that excludes sync-to-public.yaml
+            git commit -m "Sync from internal repo" --no-verify || true
+            SYNC_COMMIT=$(git rev-parse HEAD)
+            
+            # Verify the filtered commit has all essential files
+            if ! git ls-tree -r --name-only "$SYNC_COMMIT" | grep -q "^README\.md$" || \
+               ! git ls-tree -r --name-only "$SYNC_COMMIT" | grep -q "^sample-web-app/"; then
+              echo "❌ Error: Filtered commit is missing essential files, aborting"
+              git reset --hard "$CURRENT_COMMIT" 2>/dev/null || true
+              exit 1
+            fi
+            
+            # Verify sync-to-public.yaml is NOT in the filtered commit
+            if git ls-tree -r --name-only "$SYNC_COMMIT" | grep -q "^\.github/workflows/sync-to-public\.yaml$"; then
+              echo "⚠️  Warning: sync-to-public.yaml still in filtered commit"
+            else
+              echo "✅ Verified: sync-to-public.yaml excluded from filtered commit"
+            fi
+            
+            # Restore sync-to-public.yaml in index immediately (for internal repo)
+            git reset HEAD .github/workflows/sync-to-public.yaml 2>/dev/null || true
+            git checkout -- .github/workflows/sync-to-public.yaml 2>/dev/null || true
+          else
+            echo "sync-to-public.yaml not in commit, using current commit as-is"
+            SYNC_COMMIT="$CURRENT_COMMIT"
+          fi
+          
+          echo ""
+          echo "Pushing to ${{ env.PUBLIC_REPO }}:$TARGET_BRANCH..."
+          echo "Source branch: main ($(git rev-parse --short $CURRENT_COMMIT))"
+          if [ "$SYNC_COMMIT" != "$CURRENT_COMMIT" ]; then
+            echo "Filtered commit: $(git rev-parse --short $SYNC_COMMIT) (excludes sync-to-public.yaml)"
+          fi
+          
+          # Check if target branch exists
+          BRANCH_EXISTS=$(git ls-remote --heads public $TARGET_BRANCH 2>&1 | grep -c "refs/heads/$TARGET_BRANCH" || echo "0")
+          
+          # Push filtered commit to public repo
+          if [ "$BRANCH_EXISTS" = "0" ]; then
+            echo "Target branch doesn't exist - will create it"
+            PUSH_CMD="git push public $SYNC_COMMIT:refs/heads/$TARGET_BRANCH --set-upstream"
+          else
+            echo "Target branch exists - will force push"
+            PUSH_CMD="git push public $SYNC_COMMIT:refs/heads/$TARGET_BRANCH --force"
+          fi
+          
+          # Try push with verbose output and capture errors
+          echo "Executing: $PUSH_CMD"
+          set +e  # Don't exit on error so we can capture output
+          PUSH_OUTPUT=$($PUSH_CMD --verbose 2>&1)
+          PUSH_EXIT_CODE=$?
+          set -e
+          
+          if [ $PUSH_EXIT_CODE -eq 0 ]; then
+            echo "✅ Synced to public repository (sync-to-public.yaml excluded)"
+            echo "$PUSH_OUTPUT"
+          else
+            echo "❌ Push failed (exit code: $PUSH_EXIT_CODE)"
+            echo ""
+            echo "Git push output:"
+            echo "$PUSH_OUTPUT"
+            echo ""
+            
+            # Diagnose the issue
+            if echo "$PUSH_OUTPUT" | grep -qi "permission\|denied\|forbidden\|403"; then
+              echo "Diagnosis: Permission denied"
+            elif echo "$PUSH_OUTPUT" | grep -qi "not found\|404"; then
+              echo "Diagnosis: Repository not found"
+            elif echo "$PUSH_OUTPUT" | grep -qi "protected\|force.*not allowed"; then
+              echo "Diagnosis: Branch protection"
+            fi
+            
+            exit $PUSH_EXIT_CODE
+          fi
+          
+          # Reset internal repo to original commit (restore sync-to-public.yaml)
+          if [ "$SYNC_COMMIT" != "$CURRENT_COMMIT" ]; then
+            git reset --hard "$CURRENT_COMMIT" 2>/dev/null || true
+          fi
+
+      - name: Summary
+        env:
+          DRY_RUN: ${{ env.DRY_RUN }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "## Sync Test 🔄" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Dry Run Mode** - No changes were pushed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Sync Complete 🔄" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ env.PUBLIC_REPO }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ env.TEST_BRANCH }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
