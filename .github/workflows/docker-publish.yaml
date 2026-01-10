@@ -22,6 +22,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: sample-web-app/frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: sample-web-app/backend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: sample-web-app/frontend
+        run: npm run build
+
+      - name: Build backend
+        working-directory: sample-web-app/backend
+        run: npm run build
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
