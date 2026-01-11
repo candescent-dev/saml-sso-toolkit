@@ -117,14 +117,25 @@ jobs:
         run: |
           echo "Preparing ZIP structure..."
           mkdir -p "$TMP_DIR/sample-web-app/frontend"
-          cp -r "$ROOT_DIR/sample-web-app/frontend/build" "$TMP_DIR/sample-web-app/frontend/"
           cp "$ROOT_DIR/sample-web-app/frontend/package.json" "$TMP_DIR/sample-web-app/frontend/"
+          cp "$ROOT_DIR/sample-web-app/frontend/package-lock.json" "$TMP_DIR/sample-web-app/frontend/" || true
+          cp "$ROOT_DIR/sample-web-app/frontend/tsconfig.json" "$TMP_DIR/sample-web-app/frontend/"
+          cp "$ROOT_DIR/sample-web-app/frontend/api.config.json" "$TMP_DIR/sample-web-app/frontend/" || true
+          cp -r "$ROOT_DIR/sample-web-app/frontend/src" "$TMP_DIR/sample-web-app/frontend/"
+          cp -r "$ROOT_DIR/sample-web-app/frontend/public" "$TMP_DIR/sample-web-app/frontend/"
+          cp -r "$ROOT_DIR/sample-web-app/frontend/scripts" "$TMP_DIR/sample-web-app/frontend/" || true
  
           # --- Backend ---
           mkdir -p "$TMP_DIR/sample-web-app/backend"
-          cp -r "$ROOT_DIR/sample-web-app/backend/dist"       "$TMP_DIR/sample-web-app/backend/"
           cp "$ROOT_DIR/sample-web-app/backend/package.json"  "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/package-lock.json"  "$TMP_DIR/sample-web-app/backend/" || true
           cp "$ROOT_DIR/sample-web-app/backend/cache.json"    "$TMP_DIR/sample-web-app/backend/cache.json"
+          cp "$ROOT_DIR/sample-web-app/backend/tsconfig.json" "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/tsconfig.build.json" "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/nest-cli.json" "$TMP_DIR/sample-web-app/backend/"
+          cp "$ROOT_DIR/sample-web-app/backend/eslint.config.mjs" "$TMP_DIR/sample-web-app/backend/" || true
+          cp -r "$ROOT_DIR/sample-web-app/backend/src"        "$TMP_DIR/sample-web-app/backend/"
+          cp -r "$ROOT_DIR/sample-web-app/backend/test"       "$TMP_DIR/sample-web-app/backend/" || true
  
           cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app" || warn "Dockerfile not found at $ROOT_DIR/sample-web-app"
           cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
