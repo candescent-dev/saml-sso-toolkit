@@ -71,8 +71,6 @@ npm start
 
 > **Note** - If the above command triggers a security error. Please Bypass the security using the command here: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
 
-**Validation of server health (Optional)**: Validate the server health here - `http://localhost:8000/api/health`. If the frontend port is modified, then open `http://localhost:{port}/api/health`
-
 ### 4. Open the Toolkit
 
 Navigate to `http://localhost:8000` (If not 8000 then `http://localhost:{port}`) in your browser.
@@ -83,27 +81,27 @@ Navigate to `http://localhost:8000` (If not 8000 then `http://localhost:{port}`)
 
 When the toolkit loads, it displays:
 
-- **ACS URL** input field - Enter your vendor's Assertion Consumer Service URL
-- **Test encryption public certificate** field - Enter the vendor's public certificate in PEM format
+- **ACS URL** input field - Enter your Test Assertion Consumer Service URL
+- **Test encryption public certificate** field - Enter the Test public certificate in PEM format
 - **User attributes** (first name, last name, member ID, and email) - non-editable mock data
 - **Download Candescent Public Key** - For signature verification
 
 ### SAML Flow
 
-1. Enter the vendor's **ACS URL** and **encryption public certificate**
-   - **ACS URL Example**: 
+1. Enter the test **ACS URL** and **encryption public certificate**
+   - **Test ACS URL Example**: 
      - If running locally: `http://localhost:7080/api/saml-validator/acs`
      - If running in Docker: `http://host.docker.internal:7080/api/saml-validator/acs`
-   - **Public Certificate**: Enter the vendor's public certificate in PEM format
+   - **Public Certificate**: Enter the test public certificate in PEM format
 
 2. Click **Run Simulation** to generate and post the SAML assertion
 
 3. Backend processes the request:
    - Creates a SAML assertion in XML format
    - Signs it using Candescent's private key
-   - Encrypts it using the vendor's public key
+   - Encrypts it using the test public key
    - Base64-encodes the SAML response
-   - Posts it to the vendor's ACS URL
+   - Posts it to the test ACS URL
 
 4. The system displays:
    - A **Success page** upon receiving a successful response from the ACS endpoint
@@ -140,7 +138,7 @@ The validator tests:
 
 After running the validator, download:
 - **e2e-report.html** - Human-readable test report
-- **jest-e2e.xml** - JUnit XML for CI integration
+- **jest-e2e.xml** - XML test report witch cases.
 
 ## Configuration
 
