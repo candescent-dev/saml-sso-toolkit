@@ -302,10 +302,6 @@ npm test
 
 # Backend E2E tests
 npm run test:e2e
-
-# Frontend E2E tests (requires Playwright)
-cd sample-web-app
-npx playwright test
 ```
 
 ## Tech Stack
