@@ -1,8 +1,8 @@
 # SAML SSO Toolkit
 
 
-<img width="3219" height="1495" alt="Diagram SAML Simulator" src="https://github.com/user-attachments/assets/f16e46e0-ee0c-4426-a36e-179d205ec0f1" />
-                                                        SAML Simulator Flow Diagram
+<img width="3219" height="500" alt="Diagram SAML Simulator" src="./documentation/Diagram SAML Simulator.png"/>
+<p align="center"><u>SAML Simulator Flow Diagram</u></p>
 
 
 
