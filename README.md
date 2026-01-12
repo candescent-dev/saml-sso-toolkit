@@ -138,7 +138,7 @@ The validator tests:
 
 After running the validator, download:
 - **e2e-report.html** - Human-readable test report
-- **jest-e2e.xml** - XML test report witch cases.
+- **jest-e2e.xml** - XML test report with test cases.
 
 ## Configuration
 
