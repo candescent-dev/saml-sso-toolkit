@@ -1,11 +1,8 @@
 # SAML SSO Toolkit
 
+<div align="center"> <img src="./documentation/Diagram SAML Simulator.png" alt="Diagram SAML Simulator" width="3219" height="500"/> <br/> SAML Simulator Flow Diagram</div>
 
-<img width="3219" height="500" alt="Diagram SAML Simulator" src="./documentation/Diagram SAML Simulator.png"/>
-<p align="center"><u>SAML Simulator Flow Diagram</u></p>
-
-
-
+<br/>
 A local development toolkit for partners and financial institutions (FIs) to build and test SAML Single Sign-On (SSO) integrations. This toolkit simulates a SAML Identity Provider, allowing you to develop and validate your SAML client implementation before connecting to production environments.
 
 ## Features
