@@ -142,11 +142,6 @@ jobs:
           cp "$ROOT_DIR/sample-web-app/Dockerfile" "$TMP_DIR/sample-web-app" || warn "Dockerfile not found at $ROOT_DIR/sample-web-app"
           cp "$ROOT_DIR/sample-web-app/config.json" "$TMP_DIR/sample-web-app/config.json" || warn "config.json not found"
 
-          # --- Scripts ---
-          mkdir -p "$TMP_DIR/sample-web-app/scripts"
-          cp -r "$ROOT_DIR/scripts/ps" "$TMP_DIR/sample-web-app/scripts/" || true
-          cp -r "$ROOT_DIR/scripts/shell" "$TMP_DIR/sample-web-app/scripts/" || true
- 
       - name: Create flattened ZIP
         run: |
           ZIP_NAME="saml-sso-toolkit.zip"

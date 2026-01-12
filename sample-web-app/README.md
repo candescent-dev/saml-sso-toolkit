@@ -6,9 +6,6 @@ Simple-web-app is a lightweight web application consisting of two  modules:
 
 ### Getting Started 
 
-#### To Create Zip in local
-./script/local-build.sh
-
 #### Prerequisites
 Make sure to install the following applications:
 1. Node.js
@@ -17,13 +14,13 @@ Make sure to install the following applications:
 
 To run the application, follow below steps:
 1. #### Create Docker Image
-    Navigate to the script directory and execute:
-    **`./init.sh`**
+    Navigate to the sample-web-app directory and execute:
+    **`docker build -t saml-sso-toolkit:latest .`**
 
-    *This script builds the Docker image for the application.*
+    *This builds the Docker image for the application.*
 2. #### Run the Application
     Once the image is successfully created, start the container by running:
-    **`./run-web-app.sh`**
+    **`docker run -d --name saml-sso-toolkit -p 8000:8000 -p 9000:9000 saml-sso-toolkit:latest`**
 
     *This will launch the web application (frontend and backend) using the previously built Docker image.*
 
@@ -34,6 +31,6 @@ To run the application, follow below steps:
     ```
 
 3. #### Health Check
-    To verify that the application is running correctly, use:
-    **`./selftest.sh`**
-    *This script performs a basic health check on the application.*
+    To verify that the application is running correctly, check:
+    - Frontend: `http://localhost:8000`
+    - Backend health: `http://localhost:9000/api/health`
