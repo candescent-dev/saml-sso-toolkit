@@ -8,7 +8,7 @@ A local development toolkit for partners and financial institutions (FIs) to bui
 ## Features
 
 - **Mock SAML Identity Provider** - Full SAML 2.0 authentication flow
-- **SAML Assertion Generation** - XML assertions with configurable attributes
+- **SAML Assertion Generation** - XML assertions with non-editable mock attributes
 - **Digital Signing** - RS256-signed assertions using Candescent's private key
 - **Assertion Encryption** - Support for vendor-provided encryption certificates
 - **E2E Validation** - Automated tests to verify your integration
@@ -117,7 +117,7 @@ The toolkit exposes standard SAML endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/saml/login` | POST | Generates and posts SAML assertion to ACS URL |
-| `/api/saml/public-key` | GET | Returns Candescent's public key for signature verification |
+| `/api/public-key` | GET | Returns Candescent's public key for signature verification |
 | `/api/health` | GET | Health check |
 
 ## Validation
