@@ -117,7 +117,10 @@ The toolkit exposes standard SAML endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/saml/login` | POST | Generates and posts SAML assertion to ACS URL |
+| `/api/saml/saml-setting` | GET | Retrieves cached SAML settings |
 | `/api/public-key` | GET | Returns Candescent's public key for signature verification |
+| `/api/e2e-test` | POST | Runs E2E tests and returns test reports as ZIP |
+| `/api/publish-config` | GET | Downloads SAML configuration file |
 | `/api/health` | GET | Health check |
 
 ## Validation
